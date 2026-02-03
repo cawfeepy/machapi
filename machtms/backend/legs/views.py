@@ -9,9 +9,12 @@ from machtms.backend.legs.models import Leg, ShipmentAssignment
 from machtms.backend.legs.serializers import (
     LegSerializer,
     ShipmentAssignmentSerializer,
-    ShipmentAssignmentModifySerializer,
-    ShipmentAssignmentModifyResponseSerializer,
+    ShipmentAssignmentSwapSerializer,
+    ShipmentAssignmentSwapResponseSerializer,
+    ShipmentAssignmentBulkDeleteSerializer,
+    ShipmentAssignmentBulkDeleteResponseSerializer,
 )
+from machtms.backend.legs.utils import swap_shipment_assignments
 
 
 class LegViewSet(TMSViewMixin, viewsets.ModelViewSet):
@@ -34,43 +37,59 @@ class ShipmentAssignmentViewSet(TMSViewMixin, viewsets.ModelViewSet):
     queryset = ShipmentAssignment.objects.all()
     serializer_class = ShipmentAssignmentSerializer
 
-    @extend_schema(
-        request=ShipmentAssignmentModifySerializer,
-        responses={200: ShipmentAssignmentModifyResponseSerializer},
-    )
-    @action(detail=False, methods=['post'], url_path='modify')
-    def modify(self, request):
-        """
-        Bulk modify shipment assignments.
 
-        Supports three operations:
-        - Swap: Provide both to_delete (2 items) and to_add (2 items)
-        - Unassign: Provide only to_delete with empty to_add
-        - Assign: Provide only to_add with empty to_delete
+    @extend_schema(
+        request=ShipmentAssignmentSwapSerializer,
+        responses={200: ShipmentAssignmentSwapResponseSerializer},
+    )
+    @action(detail=False, methods=['post'], url_path='swap')
+    def swap(self, request):
         """
-        serializer = ShipmentAssignmentModifySerializer(
+        Swap drivers between two shipment assignments.
+
+        Expects: {swap: [{'leg_id': 1, 'driver_id': 2}, {'leg_id': 3, 'driver_id': 4}]}
+        """
+        serializer = ShipmentAssignmentSwapSerializer(
             data=request.data, context={'request': request}
         )
         serializer.is_valid(raise_exception=True)
 
-        to_delete_instances = serializer.validated_data.get('to_delete', [])
-        to_add_data = serializer.validated_data.get('to_add', [])
+        swap_data = [
+            {'leg_id': item['leg_id'].id, 'driver_id': item['driver_id'].id}
+            for item in serializer.validated_data['swap']
+        ]
 
-        deleted_ids = [instance.id for instance in to_delete_instances]
-
-        with transaction.atomic():
-            deleted_count = len(to_delete_instances)
-            if to_delete_instances:
-                ShipmentAssignment.objects.filter(id__in=deleted_ids).delete()
-
-            created_instances = []
-            for item in to_add_data:
-                instance = ShipmentAssignment.objects.create(**item)
-                created_instances.append(instance)
+        result = swap_shipment_assignments(swap_data, request.organization)
 
         return Response({
-            'deleted_count': deleted_count,
+            'deleted_count': result['deleted_count'],
+            'deleted_ids': result['deleted_ids'],
+            'created_count': result['created_count'],
+            'created': ShipmentAssignmentSerializer(result['created'], many=True).data,
+        })
+
+    @extend_schema(
+        request=ShipmentAssignmentBulkDeleteSerializer,
+        responses={200: ShipmentAssignmentBulkDeleteResponseSerializer},
+    )
+    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    def bulk_delete(self, request):
+        """
+        Bulk delete shipment assignments.
+
+        Expects: {ids: [1, 2, 3]}
+        """
+        serializer = ShipmentAssignmentBulkDeleteSerializer(
+            data=request.data, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        assignments_to_delete = serializer.validated_data['ids']
+        deleted_ids = [a.id for a in assignments_to_delete]
+
+        ShipmentAssignment.objects.filter(id__in=deleted_ids).delete()
+
+        return Response({
+            'deleted_count': len(deleted_ids),
             'deleted_ids': deleted_ids,
-            'created_count': len(created_instances),
-            'created': ShipmentAssignmentSerializer(created_instances, many=True).data,
         })

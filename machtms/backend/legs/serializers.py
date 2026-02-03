@@ -11,7 +11,12 @@ from machtms.core.base.mixins import AutoNestedMixin, NestedRelationConfig
 from machtms.backend.legs.models import Leg, ShipmentAssignment
 from machtms.backend.carriers.models import Carrier, Driver
 from machtms.backend.carriers.serializers import CarrierSerializer, DriverSerializer
-from machtms.backend.legs.openapi_doc import LEG_EXAMPLES, SHIPMENT_ASSIGNMENT_MODIFY_EXAMPLES
+from machtms.backend.legs.openapi_doc import (
+    LEG_EXAMPLES,
+    SHIPMENT_ASSIGNMENT_MODIFY_EXAMPLES,
+    SHIPMENT_ASSIGNMENT_SWAP_EXAMPLES,
+    SHIPMENT_ASSIGNMENT_BULK_DELETE_EXAMPLES,
+)
 
 
 class ShipmentAssignmentNestedSerializer(TMSBaseSerializer):
@@ -139,61 +144,67 @@ class ShipmentAssignmentCreateItemSerializer(TMSBaseSerializer):
         fields = TMSBaseSerializer.Meta.fields + ['carrier', 'driver', 'leg']
 
 
-@extend_schema_serializer(examples=SHIPMENT_ASSIGNMENT_MODIFY_EXAMPLES)
-class ShipmentAssignmentModifySerializer(serializers.Serializer):
-    """
-    Serializer for bulk modify operations on ShipmentAssignments.
+class ShipmentAssignmentSwapItemSerializer(serializers.Serializer):
+    """Serializer for individual swap items."""
+    leg_id = serializers.PrimaryKeyRelatedField(queryset=Leg.objects.all())
+    driver_id = serializers.PrimaryKeyRelatedField(queryset=Driver.objects.all())
 
-    Supports three operations:
-    - Swap: Provide both to_delete (2 items) and to_add (2 items)
-    - Unassign: Provide only to_delete with empty to_add
-    - Assign: Provide only to_add with empty to_delete
+
+@extend_schema_serializer(examples=SHIPMENT_ASSIGNMENT_SWAP_EXAMPLES)
+class ShipmentAssignmentSwapSerializer(serializers.Serializer):
     """
-    to_delete = serializers.PrimaryKeyRelatedField(
-        queryset=ShipmentAssignment.objects.all(),
-        many=True,
-        required=False,
-    )
-    to_add = ShipmentAssignmentCreateItemSerializer(many=True, required=False)
+    Serializer for the swap action.
+
+    Expects: {swap: [{'leg_id': 1, 'driver_id': 2}, {'leg_id': 3, 'driver_id': 4}]}
+    """
+    swap = ShipmentAssignmentSwapItemSerializer(many=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
         if request and hasattr(request, 'organization'):
-            self.fields['to_delete'].child_relation.queryset = (
-                ShipmentAssignment.objects.fbo(organization=request.organization)
-            )
+            org = request.organization
+            for child in self.fields['swap'].child.fields.values():
+                if hasattr(child, 'queryset'):
+                    child.queryset = child.queryset.filter(organization=org)
 
-    def validate(self, attrs):
-        to_delete = attrs.get('to_delete', [])
-        to_add = attrs.get('to_add', [])
-
-        if not to_delete and not to_add:
-            raise serializers.ValidationError(
-                'At least one of to_delete or to_add must be provided.'
-            )
-
-        is_swap = bool(to_delete) and bool(to_add)
-        if is_swap:
-            if len(to_delete) != 2:
-                raise serializers.ValidationError({
-                    'to_delete': 'Swap operation requires exactly 2 assignments to delete.'
-                })
-            if len(to_add) != 2:
-                raise serializers.ValidationError({
-                    'to_add': 'Swap operation requires exactly 2 new assignments.'
-                })
-
-        return attrs
+    def validate_swap(self, value):
+        if len(value) != 2:
+            raise serializers.ValidationError('Swap operation requires exactly 2 items.')
+        return value
 
 
-class ShipmentAssignmentModifyResponseSerializer(serializers.Serializer):
-    """
-    Response serializer for the modify action.
-
-    Returns counts and details of deleted and created assignments.
-    """
+class ShipmentAssignmentSwapResponseSerializer(serializers.Serializer):
+    """Response serializer for the swap action."""
     deleted_count = serializers.IntegerField()
     deleted_ids = serializers.ListField(child=serializers.IntegerField())
     created = ShipmentAssignmentSerializer(many=True)
     created_count = serializers.IntegerField()
+
+
+@extend_schema_serializer(examples=SHIPMENT_ASSIGNMENT_BULK_DELETE_EXAMPLES)
+class ShipmentAssignmentBulkDeleteSerializer(serializers.Serializer):
+    """Serializer for bulk delete action."""
+    ids = serializers.PrimaryKeyRelatedField(
+        queryset=ShipmentAssignment.objects.all(),
+        many=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'organization'):
+            self.fields['ids'].child_relation.queryset = (
+                ShipmentAssignment.objects.fbo(organization=request.organization)
+            )
+
+    def validate_ids(self, value):
+        if not value:
+            raise serializers.ValidationError('At least one ID is required.')
+        return value
+
+
+class ShipmentAssignmentBulkDeleteResponseSerializer(serializers.Serializer):
+    """Response serializer for bulk delete action."""
+    deleted_count = serializers.IntegerField()
+    deleted_ids = serializers.ListField(child=serializers.IntegerField())

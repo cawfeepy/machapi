@@ -238,3 +238,64 @@ LEG_EXAMPLES = [
         response_only=True,
     ),
 ]
+
+
+SHIPMENT_ASSIGNMENT_SWAP_EXAMPLES = [
+    OpenApiExample(
+        'Swap Drivers Request',
+        summary='Swap drivers between two legs',
+        description='Simplified swap operation using leg_id and driver_id. '
+                    'The carrier is automatically preserved from the original assignment.',
+        value={
+            'swap': [
+                {'leg_id': 1, 'driver_id': 10},
+                {'leg_id': 2, 'driver_id': 5},
+            ]
+        },
+        request_only=True,
+    ),
+    OpenApiExample(
+        'Swap Response',
+        summary='Response after swap operation',
+        description='Returns counts and details of deleted and created assignments.',
+        value={
+            'deleted_count': 2,
+            'deleted_ids': [101, 102],
+            'created_count': 2,
+            'created': [
+                {
+                    'id': 201,
+                    'carrier': {'id': 1, 'carrier_name': 'ABC Trucking'},
+                    'driver': {'id': 10, 'full_name': 'John Smith'},
+                },
+                {
+                    'id': 202,
+                    'carrier': {'id': 1, 'carrier_name': 'ABC Trucking'},
+                    'driver': {'id': 5, 'full_name': 'Jane Doe'},
+                },
+            ]
+        },
+        response_only=True,
+    ),
+]
+
+
+SHIPMENT_ASSIGNMENT_BULK_DELETE_EXAMPLES = [
+    OpenApiExample(
+        'Bulk Delete Request',
+        summary='Delete multiple assignments',
+        description='Delete one or more shipment assignments by their IDs.',
+        value={'ids': [1, 2, 3]},
+        request_only=True,
+    ),
+    OpenApiExample(
+        'Bulk Delete Response',
+        summary='Response after bulk delete operation',
+        description='Returns count and IDs of deleted assignments.',
+        value={
+            'deleted_count': 3,
+            'deleted_ids': [1, 2, 3],
+        },
+        response_only=True,
+    ),
+]
