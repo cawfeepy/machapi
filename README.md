@@ -2,16 +2,18 @@
 
 A Django REST Framework backend for managing transportation operations including loads, carriers, customers, and more.
 
-## Features
+## ✨ Features
 
-- REST API built with Django REST Framework 3.15.2
-- OpenAPI 3.0 documentation with drf-spectacular
-- Celery async task processing
-- Redis caching support
-- PostgreSQL database
-- Meilisearch integration (optional)
-- Gmail API integration (optional)
-- AWS S3 integration (optional)
+- Web server to handle typical trucking operations
+- Copy dispatch text to send to drivers
+- Easily swap loads between two drivers
+- Dashboard showing loads for a single day, grouped by driver
+
+## 🚀 Roadmap / Future Features
+
+- Implement GmailAPI to bill customers directly from the TMS
+- Use an Agentic workflow to perform multiple tasks without clicking around
+- Analyze POD text and match to shipment automatically
 
 ## Prerequisites
 
