@@ -1,0 +1,1 @@
+# Meilisearch service module

@@ -1,0 +1,3698 @@
+openapi: 3.0.3
+info:
+  title: machTMS API
+  version: 1.0.0
+  description: Transportation Management System API
+paths:
+  /api/address-usage-accumulate/:
+    get:
+      operationId: address_usage_accumulate_list
+      description: |-
+        ViewSet for managing AddressUsageAccumulate objects.
+        Tracks address usage accumulation over time.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - address-usage-accumulate
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddressUsageAccumulate'
+          description: ''
+    post:
+      operationId: address_usage_accumulate_create
+      description: |-
+        ViewSet for managing AddressUsageAccumulate objects.
+        Tracks address usage accumulation over time.
+      tags:
+      - address-usage-accumulate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUsageAccumulate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressUsageAccumulate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AddressUsageAccumulate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressUsageAccumulate'
+          description: ''
+  /api/address-usage-accumulate/{id}/:
+    get:
+      operationId: address_usage_accumulate_retrieve
+      description: |-
+        ViewSet for managing AddressUsageAccumulate objects.
+        Tracks address usage accumulation over time.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this address usage accumulate.
+        required: true
+      tags:
+      - address-usage-accumulate
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressUsageAccumulate'
+          description: ''
+  /api/address-usage-by-customer/:
+    get:
+      operationId: address_usage_by_customer_list
+      description: |-
+        ViewSet for managing AddressUsageByCustomer objects.
+        Tracks the relationship between addresses and customers,
+        including usage statistics.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - address-usage-by-customer
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddressUsageByCustomer'
+          description: ''
+    post:
+      operationId: address_usage_by_customer_create
+      description: |-
+        ViewSet for managing AddressUsageByCustomer objects.
+        Tracks the relationship between addresses and customers,
+        including usage statistics.
+      tags:
+      - address-usage-by-customer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUsageByCustomer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressUsageByCustomer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AddressUsageByCustomer'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressUsageByCustomer'
+          description: ''
+  /api/address-usage-by-customer-accumulate/:
+    get:
+      operationId: address_usage_by_customer_accumulate_list
+      description: |-
+        ViewSet for managing AddressUsageByCustomerAccumulate objects.
+        Tracks address usage by customer accumulation for analysis.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - address-usage-by-customer-accumulate
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+          description: ''
+    post:
+      operationId: address_usage_by_customer_accumulate_create
+      description: |-
+        ViewSet for managing AddressUsageByCustomerAccumulate objects.
+        Tracks address usage by customer accumulation for analysis.
+      tags:
+      - address-usage-by-customer-accumulate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+          description: ''
+  /api/address-usage-by-customer-accumulate/{id}/:
+    get:
+      operationId: address_usage_by_customer_accumulate_retrieve
+      description: |-
+        ViewSet for managing AddressUsageByCustomerAccumulate objects.
+        Tracks address usage by customer accumulation for analysis.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Address Usage (by Customer).
+        required: true
+      tags:
+      - address-usage-by-customer-accumulate
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+          description: ''
+  /api/address-usage-by-customer/{id}/:
+    get:
+      operationId: address_usage_by_customer_retrieve
+      description: |-
+        ViewSet for managing AddressUsageByCustomer objects.
+        Tracks the relationship between addresses and customers,
+        including usage statistics.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Address Usage.
+        required: true
+      tags:
+      - address-usage-by-customer
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressUsageByCustomer'
+          description: ''
+  /api/addresses/:
+    get:
+      operationId: addresses_list
+      description: |-
+        ViewSet for managing Address objects.
+        Provides CRUD operations for addresses in the system.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - addresses
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+          description: ''
+    post:
+      operationId: addresses_create
+      description: |-
+        ViewSet for managing Address objects.
+        Provides CRUD operations for addresses in the system.
+      tags:
+      - addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Address'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Address'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+  /api/addresses/{id}/:
+    get:
+      operationId: addresses_retrieve
+      description: |-
+        ViewSet for managing Address objects.
+        Provides CRUD operations for addresses in the system.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Address.
+        required: true
+      tags:
+      - addresses
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+    put:
+      operationId: addresses_update
+      description: |-
+        ViewSet for managing Address objects.
+        Provides CRUD operations for addresses in the system.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Address.
+        required: true
+      tags:
+      - addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Address'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Address'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+    patch:
+      operationId: addresses_partial_update
+      description: |-
+        ViewSet for managing Address objects.
+        Provides CRUD operations for addresses in the system.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Address.
+        required: true
+      tags:
+      - addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAddress'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAddress'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAddress'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: ''
+    delete:
+      operationId: addresses_destroy
+      description: |-
+        ViewSet for managing Address objects.
+        Provides CRUD operations for addresses in the system.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Address.
+        required: true
+      tags:
+      - addresses
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/api_login:
+    post:
+      operationId: api_login_create
+      tags:
+      - api_login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/auth:
+    post:
+      operationId: auth_create
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/carriers/:
+    get:
+      operationId: carriers_list
+      description: |-
+        ViewSet for Carrier model.
+        Provides CRUD operations for carriers.
+      tags:
+      - carriers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarrierList'
+          description: ''
+    post:
+      operationId: carriers_create
+      description: |-
+        ViewSet for Carrier model.
+        Provides CRUD operations for carriers.
+      tags:
+      - carriers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Carrier'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Carrier'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Carrier'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Carrier'
+          description: ''
+  /api/carriers/{id}/:
+    get:
+      operationId: carriers_retrieve
+      description: |-
+        ViewSet for Carrier model.
+        Provides CRUD operations for carriers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrier.
+        required: true
+      tags:
+      - carriers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Carrier'
+          description: ''
+    put:
+      operationId: carriers_update
+      description: |-
+        ViewSet for Carrier model.
+        Provides CRUD operations for carriers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrier.
+        required: true
+      tags:
+      - carriers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Carrier'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Carrier'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Carrier'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Carrier'
+          description: ''
+    patch:
+      operationId: carriers_partial_update
+      description: |-
+        ViewSet for Carrier model.
+        Provides CRUD operations for carriers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrier.
+        required: true
+      tags:
+      - carriers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCarrier'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCarrier'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCarrier'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Carrier'
+          description: ''
+    delete:
+      operationId: carriers_destroy
+      description: |-
+        ViewSet for Carrier model.
+        Provides CRUD operations for carriers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Carrier.
+        required: true
+      tags:
+      - carriers
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/customer-aps/:
+    get:
+      operationId: customer_aps_list
+      description: |-
+        ViewSet for CustomerAP model.
+        Provides CRUD operations for customer AP contacts.
+      tags:
+      - customer-aps
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerAP'
+          description: ''
+    post:
+      operationId: customer_aps_create
+      description: |-
+        ViewSet for CustomerAP model.
+        Provides CRUD operations for customer AP contacts.
+      tags:
+      - customer-aps
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerAP'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerAP'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerAP'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAP'
+          description: ''
+  /api/customer-aps/{id}/:
+    get:
+      operationId: customer_aps_retrieve
+      description: |-
+        ViewSet for CustomerAP model.
+        Provides CRUD operations for customer AP contacts.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer AP.
+        required: true
+      tags:
+      - customer-aps
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAP'
+          description: ''
+    put:
+      operationId: customer_aps_update
+      description: |-
+        ViewSet for CustomerAP model.
+        Provides CRUD operations for customer AP contacts.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer AP.
+        required: true
+      tags:
+      - customer-aps
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerAP'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerAP'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerAP'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAP'
+          description: ''
+    patch:
+      operationId: customer_aps_partial_update
+      description: |-
+        ViewSet for CustomerAP model.
+        Provides CRUD operations for customer AP contacts.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer AP.
+        required: true
+      tags:
+      - customer-aps
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerAP'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerAP'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerAP'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAP'
+          description: ''
+    delete:
+      operationId: customer_aps_destroy
+      description: |-
+        ViewSet for CustomerAP model.
+        Provides CRUD operations for customer AP contacts.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer AP.
+        required: true
+      tags:
+      - customer-aps
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/customer-representatives/:
+    get:
+      operationId: customer_representatives_list
+      description: |-
+        ViewSet for CustomerRepresentative model.
+        Provides CRUD operations for customer representatives.
+      tags:
+      - customer-representatives
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerRepresentative'
+          description: ''
+    post:
+      operationId: customer_representatives_create
+      description: |-
+        ViewSet for CustomerRepresentative model.
+        Provides CRUD operations for customer representatives.
+      tags:
+      - customer-representatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentative'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentative'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentative'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerRepresentative'
+          description: ''
+  /api/customer-representatives/{id}/:
+    get:
+      operationId: customer_representatives_retrieve
+      description: |-
+        ViewSet for CustomerRepresentative model.
+        Provides CRUD operations for customer representatives.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer Representative.
+        required: true
+      tags:
+      - customer-representatives
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerRepresentative'
+          description: ''
+    put:
+      operationId: customer_representatives_update
+      description: |-
+        ViewSet for CustomerRepresentative model.
+        Provides CRUD operations for customer representatives.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer Representative.
+        required: true
+      tags:
+      - customer-representatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentative'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentative'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentative'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerRepresentative'
+          description: ''
+    patch:
+      operationId: customer_representatives_partial_update
+      description: |-
+        ViewSet for CustomerRepresentative model.
+        Provides CRUD operations for customer representatives.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer Representative.
+        required: true
+      tags:
+      - customer-representatives
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRepresentative'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRepresentative'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRepresentative'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerRepresentative'
+          description: ''
+    delete:
+      operationId: customer_representatives_destroy
+      description: |-
+        ViewSet for CustomerRepresentative model.
+        Provides CRUD operations for customer representatives.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer Representative.
+        required: true
+      tags:
+      - customer-representatives
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/customers/:
+    get:
+      operationId: customers_list
+      description: |-
+        ViewSet for Customer model.
+        Provides CRUD operations for customers.
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerList'
+          description: ''
+    post:
+      operationId: customers_create
+      description: |-
+        ViewSet for Customer model.
+        Provides CRUD operations for customers.
+      tags:
+      - customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Customer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Customer'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+  /api/customers/{id}/:
+    get:
+      operationId: customers_retrieve
+      description: |-
+        ViewSet for Customer model.
+        Provides CRUD operations for customers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer.
+        required: true
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    put:
+      operationId: customers_update
+      description: |-
+        ViewSet for Customer model.
+        Provides CRUD operations for customers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer.
+        required: true
+      tags:
+      - customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Customer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Customer'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    patch:
+      operationId: customers_partial_update
+      description: |-
+        ViewSet for Customer model.
+        Provides CRUD operations for customers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer.
+        required: true
+      tags:
+      - customers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomer'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+          description: ''
+    delete:
+      operationId: customers_destroy
+      description: |-
+        ViewSet for Customer model.
+        Provides CRUD operations for customers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Customer.
+        required: true
+      tags:
+      - customers
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/drivers/:
+    get:
+      operationId: drivers_list
+      description: |-
+        ViewSet for Driver model.
+        Provides CRUD operations for drivers.
+      tags:
+      - drivers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DriverList'
+          description: ''
+    post:
+      operationId: drivers_create
+      description: |-
+        ViewSet for Driver model.
+        Provides CRUD operations for drivers.
+      tags:
+      - drivers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Driver'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+  /api/drivers/{id}/:
+    get:
+      operationId: drivers_retrieve
+      description: |-
+        ViewSet for Driver model.
+        Provides CRUD operations for drivers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Driver.
+        required: true
+      tags:
+      - drivers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+    put:
+      operationId: drivers_update
+      description: |-
+        ViewSet for Driver model.
+        Provides CRUD operations for drivers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Driver.
+        required: true
+      tags:
+      - drivers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Driver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Driver'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+    patch:
+      operationId: drivers_partial_update
+      description: |-
+        ViewSet for Driver model.
+        Provides CRUD operations for drivers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Driver.
+        required: true
+      tags:
+      - drivers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDriver'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDriver'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDriver'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+          description: ''
+    delete:
+      operationId: drivers_destroy
+      description: |-
+        ViewSet for Driver model.
+        Provides CRUD operations for drivers.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Driver.
+        required: true
+      tags:
+      - drivers
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/legs/:
+    get:
+      operationId: legs_list
+      description: |-
+        ViewSet for viewing and editing Leg instances.
+
+        Provides standard CRUD operations for legs.
+      tags:
+      - legs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Leg'
+              examples:
+                LegResponse:
+                  value:
+                  - leg_id: 1
+                    load_id: 1
+                    stops:
+                    - id: 1
+                      leg: 1
+                      stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - id: 2
+                      leg: 1
+                      stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                  summary: Leg response with transformed structure
+                  description: Response format with leg_id and load_id fields
+          description: ''
+    post:
+      operationId: legs_create
+      description: |-
+        ViewSet for viewing and editing Leg instances.
+
+        Provides standard CRUD operations for legs.
+      tags:
+      - legs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Leg'
+            examples:
+              CreateLegRequest:
+                value:
+                  stops:
+                  - stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5
+                  - stop_number: 2
+                    address: 2
+                    start_range: '2024-01-16T08:00:00Z'
+                    end_range: '2024-01-16T12:00:00Z'
+                    action: LU
+                    po_numbers: PO-12346
+                    driver_notes: Rear entrance
+                summary: Create a new leg with stops
+                description: Leg with nested stops for a load. Stops are validated
+                  for proper action transitions.
+              UpdateLegRequest:
+                value:
+                  id: 1
+                  stops:
+                  - id: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T09:00:00Z'
+                    action: LL
+                  - id: 2
+                    stop_number: 2
+                    address: 3
+                    action: LU
+                summary: Update existing leg with stop IDs
+                description: Include stop IDs to update existing stops.
+              UpsertLegRequest:
+                value:
+                  id: 1
+                  stops:
+                  - id: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T09:00:00Z'
+                    action: LL
+                  - id: 2
+                    stop_number: 2
+                    address: 2
+                    action: LU
+                  - stop_number: 3
+                    address: 4
+                    start_range: '2024-01-17T08:00:00Z'
+                    end_range: '2024-01-17T12:00:00Z'
+                    action: EMPD
+                    driver_notes: New stop - drop empty trailer
+                summary: Update existing stops and add new stop
+                description: Mix of existing stops (with ID) and new stops (without
+                  ID). Stops with IDs are updated, stops without IDs are created.
+                  Existing stops not included in the payload will be deleted.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Leg'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Leg'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leg'
+              examples:
+                LegResponse:
+                  value:
+                    leg_id: 1
+                    load_id: 1
+                    stops:
+                    - id: 1
+                      leg: 1
+                      stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - id: 2
+                      leg: 1
+                      stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                  summary: Leg response with transformed structure
+                  description: Response format with leg_id and load_id fields
+          description: ''
+  /api/legs/{id}/:
+    get:
+      operationId: legs_retrieve
+      description: |-
+        ViewSet for viewing and editing Leg instances.
+
+        Provides standard CRUD operations for legs.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Leg.
+        required: true
+      tags:
+      - legs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leg'
+              examples:
+                LegResponse:
+                  value:
+                    leg_id: 1
+                    load_id: 1
+                    stops:
+                    - id: 1
+                      leg: 1
+                      stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - id: 2
+                      leg: 1
+                      stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                  summary: Leg response with transformed structure
+                  description: Response format with leg_id and load_id fields
+          description: ''
+    put:
+      operationId: legs_update
+      description: |-
+        ViewSet for viewing and editing Leg instances.
+
+        Provides standard CRUD operations for legs.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Leg.
+        required: true
+      tags:
+      - legs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Leg'
+            examples:
+              CreateLegRequest:
+                value:
+                  stops:
+                  - stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5
+                  - stop_number: 2
+                    address: 2
+                    start_range: '2024-01-16T08:00:00Z'
+                    end_range: '2024-01-16T12:00:00Z'
+                    action: LU
+                    po_numbers: PO-12346
+                    driver_notes: Rear entrance
+                summary: Create a new leg with stops
+                description: Leg with nested stops for a load. Stops are validated
+                  for proper action transitions.
+              UpdateLegRequest:
+                value:
+                  id: 1
+                  stops:
+                  - id: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T09:00:00Z'
+                    action: LL
+                  - id: 2
+                    stop_number: 2
+                    address: 3
+                    action: LU
+                summary: Update existing leg with stop IDs
+                description: Include stop IDs to update existing stops.
+              UpsertLegRequest:
+                value:
+                  id: 1
+                  stops:
+                  - id: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T09:00:00Z'
+                    action: LL
+                  - id: 2
+                    stop_number: 2
+                    address: 2
+                    action: LU
+                  - stop_number: 3
+                    address: 4
+                    start_range: '2024-01-17T08:00:00Z'
+                    end_range: '2024-01-17T12:00:00Z'
+                    action: EMPD
+                    driver_notes: New stop - drop empty trailer
+                summary: Update existing stops and add new stop
+                description: Mix of existing stops (with ID) and new stops (without
+                  ID). Stops with IDs are updated, stops without IDs are created.
+                  Existing stops not included in the payload will be deleted.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Leg'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Leg'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leg'
+              examples:
+                LegResponse:
+                  value:
+                    leg_id: 1
+                    load_id: 1
+                    stops:
+                    - id: 1
+                      leg: 1
+                      stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - id: 2
+                      leg: 1
+                      stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                  summary: Leg response with transformed structure
+                  description: Response format with leg_id and load_id fields
+          description: ''
+    patch:
+      operationId: legs_partial_update
+      description: |-
+        ViewSet for viewing and editing Leg instances.
+
+        Provides standard CRUD operations for legs.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Leg.
+        required: true
+      tags:
+      - legs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLeg'
+            examples:
+              CreateLegRequest:
+                value:
+                  stops:
+                  - stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5
+                  - stop_number: 2
+                    address: 2
+                    start_range: '2024-01-16T08:00:00Z'
+                    end_range: '2024-01-16T12:00:00Z'
+                    action: LU
+                    po_numbers: PO-12346
+                    driver_notes: Rear entrance
+                summary: Create a new leg with stops
+                description: Leg with nested stops for a load. Stops are validated
+                  for proper action transitions.
+              UpdateLegRequest:
+                value:
+                  id: 1
+                  stops:
+                  - id: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T09:00:00Z'
+                    action: LL
+                  - id: 2
+                    stop_number: 2
+                    address: 3
+                    action: LU
+                summary: Update existing leg with stop IDs
+                description: Include stop IDs to update existing stops.
+              UpsertLegRequest:
+                value:
+                  id: 1
+                  stops:
+                  - id: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T09:00:00Z'
+                    action: LL
+                  - id: 2
+                    stop_number: 2
+                    address: 2
+                    action: LU
+                  - stop_number: 3
+                    address: 4
+                    start_range: '2024-01-17T08:00:00Z'
+                    end_range: '2024-01-17T12:00:00Z'
+                    action: EMPD
+                    driver_notes: New stop - drop empty trailer
+                summary: Update existing stops and add new stop
+                description: Mix of existing stops (with ID) and new stops (without
+                  ID). Stops with IDs are updated, stops without IDs are created.
+                  Existing stops not included in the payload will be deleted.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLeg'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLeg'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Leg'
+              examples:
+                LegResponse:
+                  value:
+                    leg_id: 1
+                    load_id: 1
+                    stops:
+                    - id: 1
+                      leg: 1
+                      stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - id: 2
+                      leg: 1
+                      stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      timestamp: '2024-01-10T10:30:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                  summary: Leg response with transformed structure
+                  description: Response format with leg_id and load_id fields
+          description: ''
+    delete:
+      operationId: legs_destroy
+      description: |-
+        ViewSet for viewing and editing Leg instances.
+
+        Provides standard CRUD operations for legs.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Leg.
+        required: true
+      tags:
+      - legs
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/loads/:
+    get:
+      operationId: loads_list
+      description: |-
+        ViewSet for managing Load objects.
+
+        Provides CRUD operations for loads with organization-based filtering.
+      tags:
+      - loads
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Load'
+              examples:
+                LoadResponse:
+                  value:
+                  - id: 1
+                    reference_number: LOAD-2024-001
+                    bol_number: BOL-12345
+                    customer: 1
+                    status: pending
+                    billing_status: pending_delivery
+                    trailer_type: LARGE_53
+                    legs:
+                    - leg_id: 1
+                      load_id: 1
+                      stops:
+                      - id: 1
+                        leg: 1
+                        stop_number: 1
+                        address: 1
+                        start_range: '2024-01-15T08:00:00Z'
+                        end_range: '2024-01-15T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LL
+                        po_numbers: PO-12345
+                        driver_notes: Dock 5
+                      - id: 2
+                        leg: 1
+                        stop_number: 2
+                        address: 2
+                        start_range: '2024-01-16T08:00:00Z'
+                        end_range: '2024-01-16T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LU
+                        po_numbers: PO-12346
+                        driver_notes: Rear entrance
+                    created_at: '2024-01-10T10:30:00Z'
+                    updated_at: '2024-01-10T10:30:00Z'
+                  summary: Full load response with all nested data
+                  description: Response includes all fields with nested legs and stops.
+          description: ''
+    post:
+      operationId: loads_create
+      description: |-
+        ViewSet for managing Load objects.
+
+        Provides CRUD operations for loads with organization-based filtering.
+      tags:
+      - loads
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Load'
+            examples:
+              CreateLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001
+                  bol_number: BOL-12345
+                  customer: 1
+                  status: pending
+                  billing_status: pending_delivery
+                  trailer_type: LARGE_53
+                  legs:
+                  - stops:
+                    - stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                summary: Create a new load with legs and stops
+                description: Request body for creating a load with nested legs and
+                  stops. Each leg contains stops that are validated for proper action
+                  transitions.
+              UpdateLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001-UPDATED
+                  bol_number: BOL-12345-REV
+                  status: dispatched
+                  legs:
+                  - id: 1
+                    stops:
+                    - id: 1
+                      stop_number: 1
+                      address: 1
+                      action: LL
+                    - id: 2
+                      stop_number: 2
+                      address: 2
+                      action: LU
+                summary: Update existing load with leg and stop IDs
+                description: Include IDs for existing nested objects to update them.
+              UpsertLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001
+                  status: in_transit
+                  legs:
+                  - id: 1
+                    stops:
+                    - id: 1
+                      stop_number: 1
+                      address: 1
+                      action: LL
+                    - id: 2
+                      stop_number: 2
+                      address: 2
+                      action: LU
+                  - stops:
+                    - stop_number: 1
+                      address: 3
+                      start_range: '2024-01-17T08:00:00Z'
+                      action: LL
+                      driver_notes: New leg - second pickup
+                    - stop_number: 2
+                      address: 4
+                      start_range: '2024-01-18T08:00:00Z'
+                      action: LU
+                summary: Update load with mix of existing and new nested objects
+                description: Mix of existing legs/stops (with ID) and new ones (without
+                  ID). Objects with IDs are updated, objects without IDs are created.
+                  Existing objects not included in the payload will be deleted.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Load'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Load'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Load'
+              examples:
+                LoadResponse:
+                  value:
+                    id: 1
+                    reference_number: LOAD-2024-001
+                    bol_number: BOL-12345
+                    customer: 1
+                    status: pending
+                    billing_status: pending_delivery
+                    trailer_type: LARGE_53
+                    legs:
+                    - leg_id: 1
+                      load_id: 1
+                      stops:
+                      - id: 1
+                        leg: 1
+                        stop_number: 1
+                        address: 1
+                        start_range: '2024-01-15T08:00:00Z'
+                        end_range: '2024-01-15T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LL
+                        po_numbers: PO-12345
+                        driver_notes: Dock 5
+                      - id: 2
+                        leg: 1
+                        stop_number: 2
+                        address: 2
+                        start_range: '2024-01-16T08:00:00Z'
+                        end_range: '2024-01-16T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LU
+                        po_numbers: PO-12346
+                        driver_notes: Rear entrance
+                    created_at: '2024-01-10T10:30:00Z'
+                    updated_at: '2024-01-10T10:30:00Z'
+                  summary: Full load response with all nested data
+                  description: Response includes all fields with nested legs and stops.
+          description: ''
+  /api/loads/{id}/:
+    get:
+      operationId: loads_retrieve
+      description: |-
+        ViewSet for managing Load objects.
+
+        Provides CRUD operations for loads with organization-based filtering.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Load.
+        required: true
+      tags:
+      - loads
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Load'
+              examples:
+                LoadResponse:
+                  value:
+                    id: 1
+                    reference_number: LOAD-2024-001
+                    bol_number: BOL-12345
+                    customer: 1
+                    status: pending
+                    billing_status: pending_delivery
+                    trailer_type: LARGE_53
+                    legs:
+                    - leg_id: 1
+                      load_id: 1
+                      stops:
+                      - id: 1
+                        leg: 1
+                        stop_number: 1
+                        address: 1
+                        start_range: '2024-01-15T08:00:00Z'
+                        end_range: '2024-01-15T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LL
+                        po_numbers: PO-12345
+                        driver_notes: Dock 5
+                      - id: 2
+                        leg: 1
+                        stop_number: 2
+                        address: 2
+                        start_range: '2024-01-16T08:00:00Z'
+                        end_range: '2024-01-16T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LU
+                        po_numbers: PO-12346
+                        driver_notes: Rear entrance
+                    created_at: '2024-01-10T10:30:00Z'
+                    updated_at: '2024-01-10T10:30:00Z'
+                  summary: Full load response with all nested data
+                  description: Response includes all fields with nested legs and stops.
+          description: ''
+    put:
+      operationId: loads_update
+      description: |-
+        ViewSet for managing Load objects.
+
+        Provides CRUD operations for loads with organization-based filtering.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Load.
+        required: true
+      tags:
+      - loads
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Load'
+            examples:
+              CreateLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001
+                  bol_number: BOL-12345
+                  customer: 1
+                  status: pending
+                  billing_status: pending_delivery
+                  trailer_type: LARGE_53
+                  legs:
+                  - stops:
+                    - stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                summary: Create a new load with legs and stops
+                description: Request body for creating a load with nested legs and
+                  stops. Each leg contains stops that are validated for proper action
+                  transitions.
+              UpdateLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001-UPDATED
+                  bol_number: BOL-12345-REV
+                  status: dispatched
+                  legs:
+                  - id: 1
+                    stops:
+                    - id: 1
+                      stop_number: 1
+                      address: 1
+                      action: LL
+                    - id: 2
+                      stop_number: 2
+                      address: 2
+                      action: LU
+                summary: Update existing load with leg and stop IDs
+                description: Include IDs for existing nested objects to update them.
+              UpsertLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001
+                  status: in_transit
+                  legs:
+                  - id: 1
+                    stops:
+                    - id: 1
+                      stop_number: 1
+                      address: 1
+                      action: LL
+                    - id: 2
+                      stop_number: 2
+                      address: 2
+                      action: LU
+                  - stops:
+                    - stop_number: 1
+                      address: 3
+                      start_range: '2024-01-17T08:00:00Z'
+                      action: LL
+                      driver_notes: New leg - second pickup
+                    - stop_number: 2
+                      address: 4
+                      start_range: '2024-01-18T08:00:00Z'
+                      action: LU
+                summary: Update load with mix of existing and new nested objects
+                description: Mix of existing legs/stops (with ID) and new ones (without
+                  ID). Objects with IDs are updated, objects without IDs are created.
+                  Existing objects not included in the payload will be deleted.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Load'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Load'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Load'
+              examples:
+                LoadResponse:
+                  value:
+                    id: 1
+                    reference_number: LOAD-2024-001
+                    bol_number: BOL-12345
+                    customer: 1
+                    status: pending
+                    billing_status: pending_delivery
+                    trailer_type: LARGE_53
+                    legs:
+                    - leg_id: 1
+                      load_id: 1
+                      stops:
+                      - id: 1
+                        leg: 1
+                        stop_number: 1
+                        address: 1
+                        start_range: '2024-01-15T08:00:00Z'
+                        end_range: '2024-01-15T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LL
+                        po_numbers: PO-12345
+                        driver_notes: Dock 5
+                      - id: 2
+                        leg: 1
+                        stop_number: 2
+                        address: 2
+                        start_range: '2024-01-16T08:00:00Z'
+                        end_range: '2024-01-16T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LU
+                        po_numbers: PO-12346
+                        driver_notes: Rear entrance
+                    created_at: '2024-01-10T10:30:00Z'
+                    updated_at: '2024-01-10T10:30:00Z'
+                  summary: Full load response with all nested data
+                  description: Response includes all fields with nested legs and stops.
+          description: ''
+    patch:
+      operationId: loads_partial_update
+      description: |-
+        ViewSet for managing Load objects.
+
+        Provides CRUD operations for loads with organization-based filtering.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Load.
+        required: true
+      tags:
+      - loads
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLoad'
+            examples:
+              CreateLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001
+                  bol_number: BOL-12345
+                  customer: 1
+                  status: pending
+                  billing_status: pending_delivery
+                  trailer_type: LARGE_53
+                  legs:
+                  - stops:
+                    - stop_number: 1
+                      address: 1
+                      start_range: '2024-01-15T08:00:00Z'
+                      end_range: '2024-01-15T12:00:00Z'
+                      action: LL
+                      po_numbers: PO-12345
+                      driver_notes: Dock 5
+                    - stop_number: 2
+                      address: 2
+                      start_range: '2024-01-16T08:00:00Z'
+                      end_range: '2024-01-16T12:00:00Z'
+                      action: LU
+                      po_numbers: PO-12346
+                      driver_notes: Rear entrance
+                summary: Create a new load with legs and stops
+                description: Request body for creating a load with nested legs and
+                  stops. Each leg contains stops that are validated for proper action
+                  transitions.
+              UpdateLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001-UPDATED
+                  bol_number: BOL-12345-REV
+                  status: dispatched
+                  legs:
+                  - id: 1
+                    stops:
+                    - id: 1
+                      stop_number: 1
+                      address: 1
+                      action: LL
+                    - id: 2
+                      stop_number: 2
+                      address: 2
+                      action: LU
+                summary: Update existing load with leg and stop IDs
+                description: Include IDs for existing nested objects to update them.
+              UpsertLoadRequest:
+                value:
+                  reference_number: LOAD-2024-001
+                  status: in_transit
+                  legs:
+                  - id: 1
+                    stops:
+                    - id: 1
+                      stop_number: 1
+                      address: 1
+                      action: LL
+                    - id: 2
+                      stop_number: 2
+                      address: 2
+                      action: LU
+                  - stops:
+                    - stop_number: 1
+                      address: 3
+                      start_range: '2024-01-17T08:00:00Z'
+                      action: LL
+                      driver_notes: New leg - second pickup
+                    - stop_number: 2
+                      address: 4
+                      start_range: '2024-01-18T08:00:00Z'
+                      action: LU
+                summary: Update load with mix of existing and new nested objects
+                description: Mix of existing legs/stops (with ID) and new ones (without
+                  ID). Objects with IDs are updated, objects without IDs are created.
+                  Existing objects not included in the payload will be deleted.
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLoad'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLoad'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Load'
+              examples:
+                LoadResponse:
+                  value:
+                    id: 1
+                    reference_number: LOAD-2024-001
+                    bol_number: BOL-12345
+                    customer: 1
+                    status: pending
+                    billing_status: pending_delivery
+                    trailer_type: LARGE_53
+                    legs:
+                    - leg_id: 1
+                      load_id: 1
+                      stops:
+                      - id: 1
+                        leg: 1
+                        stop_number: 1
+                        address: 1
+                        start_range: '2024-01-15T08:00:00Z'
+                        end_range: '2024-01-15T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LL
+                        po_numbers: PO-12345
+                        driver_notes: Dock 5
+                      - id: 2
+                        leg: 1
+                        stop_number: 2
+                        address: 2
+                        start_range: '2024-01-16T08:00:00Z'
+                        end_range: '2024-01-16T12:00:00Z'
+                        timestamp: '2024-01-10T10:30:00Z'
+                        action: LU
+                        po_numbers: PO-12346
+                        driver_notes: Rear entrance
+                    created_at: '2024-01-10T10:30:00Z'
+                    updated_at: '2024-01-10T10:30:00Z'
+                  summary: Full load response with all nested data
+                  description: Response includes all fields with nested legs and stops.
+          description: ''
+    delete:
+      operationId: loads_destroy
+      description: |-
+        ViewSet for managing Load objects.
+
+        Provides CRUD operations for loads with organization-based filtering.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Load.
+        required: true
+      tags:
+      - loads
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/login:
+    post:
+      operationId: login_create
+      tags:
+      - login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/logout:
+    post:
+      operationId: logout_create
+      tags:
+      - logout
+      responses:
+        '200':
+          description: No response body
+  /api/shipment-assignments/:
+    get:
+      operationId: shipment_assignments_list
+      description: |-
+        ViewSet for viewing and editing ShipmentAssignment instances.
+
+        Provides standard CRUD operations for shipment assignments.
+      tags:
+      - shipment-assignments
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShipmentAssignment'
+          description: ''
+    post:
+      operationId: shipment_assignments_create
+      description: |-
+        ViewSet for viewing and editing ShipmentAssignment instances.
+
+        Provides standard CRUD operations for shipment assignments.
+      tags:
+      - shipment-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignment'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipmentAssignment'
+          description: ''
+  /api/shipment-assignments/{id}/:
+    get:
+      operationId: shipment_assignments_retrieve
+      description: |-
+        ViewSet for viewing and editing ShipmentAssignment instances.
+
+        Provides standard CRUD operations for shipment assignments.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Shipment Assignment.
+        required: true
+      tags:
+      - shipment-assignments
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipmentAssignment'
+          description: ''
+    put:
+      operationId: shipment_assignments_update
+      description: |-
+        ViewSet for viewing and editing ShipmentAssignment instances.
+
+        Provides standard CRUD operations for shipment assignments.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Shipment Assignment.
+        required: true
+      tags:
+      - shipment-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignment'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipmentAssignment'
+          description: ''
+    patch:
+      operationId: shipment_assignments_partial_update
+      description: |-
+        ViewSet for viewing and editing ShipmentAssignment instances.
+
+        Provides standard CRUD operations for shipment assignments.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Shipment Assignment.
+        required: true
+      tags:
+      - shipment-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedShipmentAssignment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedShipmentAssignment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedShipmentAssignment'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipmentAssignment'
+          description: ''
+    delete:
+      operationId: shipment_assignments_destroy
+      description: |-
+        ViewSet for viewing and editing ShipmentAssignment instances.
+
+        Provides standard CRUD operations for shipment assignments.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Shipment Assignment.
+        required: true
+      tags:
+      - shipment-assignments
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/stops/:
+    get:
+      operationId: stops_list
+      description: |-
+        ViewSet for managing stops in transportation routes.
+
+        Provides full CRUD operations for Stop objects.
+        Supports searching by address, PO numbers, and stop number.
+        Results are ordered by start_range by default.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - stops
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stop'
+              examples:
+                StopResponse:
+                  value:
+                  - id: 1
+                    leg: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    timestamp: '2024-01-10T10:30:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5, call on arrival
+                  summary: Full stop object in response
+          description: ''
+    post:
+      operationId: stops_create
+      description: |-
+        ViewSet for managing stops in transportation routes.
+
+        Provides full CRUD operations for Stop objects.
+        Supports searching by address, PO numbers, and stop number.
+        Results are ordered by start_range by default.
+      tags:
+      - stops
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Stop'
+            examples:
+              CreateStopRequest:
+                value:
+                  stop_number: 1
+                  address: 1
+                  start_range: '2024-01-15T08:00:00Z'
+                  end_range: '2024-01-15T12:00:00Z'
+                  action: LL
+                  po_numbers: PO-12345
+                  driver_notes: Dock 5, call on arrival
+                summary: Create a new stop within a leg
+                description: Request body for creating a stop. The leg field is set
+                  by the parent serializer.
+              UpdateStopRequest:
+                value:
+                  id: 1
+                  stop_number: 1
+                  address: 2
+                  start_range: '2024-01-15T09:00:00Z'
+                  end_range: '2024-01-15T13:00:00Z'
+                  action: LU
+                  po_numbers: PO-12345, PO-12346
+                  driver_notes: 'Updated: Use rear entrance'
+                summary: Update existing stop with ID
+                description: Include the stop ID when updating an existing stop
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Stop'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Stop'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stop'
+              examples:
+                StopResponse:
+                  value:
+                    id: 1
+                    leg: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    timestamp: '2024-01-10T10:30:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5, call on arrival
+                  summary: Full stop object in response
+          description: ''
+  /api/stops/{id}/:
+    get:
+      operationId: stops_retrieve
+      description: |-
+        ViewSet for managing stops in transportation routes.
+
+        Provides full CRUD operations for Stop objects.
+        Supports searching by address, PO numbers, and stop number.
+        Results are ordered by start_range by default.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Stop.
+        required: true
+      tags:
+      - stops
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stop'
+              examples:
+                StopResponse:
+                  value:
+                    id: 1
+                    leg: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    timestamp: '2024-01-10T10:30:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5, call on arrival
+                  summary: Full stop object in response
+          description: ''
+    put:
+      operationId: stops_update
+      description: |-
+        ViewSet for managing stops in transportation routes.
+
+        Provides full CRUD operations for Stop objects.
+        Supports searching by address, PO numbers, and stop number.
+        Results are ordered by start_range by default.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Stop.
+        required: true
+      tags:
+      - stops
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Stop'
+            examples:
+              CreateStopRequest:
+                value:
+                  stop_number: 1
+                  address: 1
+                  start_range: '2024-01-15T08:00:00Z'
+                  end_range: '2024-01-15T12:00:00Z'
+                  action: LL
+                  po_numbers: PO-12345
+                  driver_notes: Dock 5, call on arrival
+                summary: Create a new stop within a leg
+                description: Request body for creating a stop. The leg field is set
+                  by the parent serializer.
+              UpdateStopRequest:
+                value:
+                  id: 1
+                  stop_number: 1
+                  address: 2
+                  start_range: '2024-01-15T09:00:00Z'
+                  end_range: '2024-01-15T13:00:00Z'
+                  action: LU
+                  po_numbers: PO-12345, PO-12346
+                  driver_notes: 'Updated: Use rear entrance'
+                summary: Update existing stop with ID
+                description: Include the stop ID when updating an existing stop
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Stop'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Stop'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stop'
+              examples:
+                StopResponse:
+                  value:
+                    id: 1
+                    leg: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    timestamp: '2024-01-10T10:30:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5, call on arrival
+                  summary: Full stop object in response
+          description: ''
+    patch:
+      operationId: stops_partial_update
+      description: |-
+        ViewSet for managing stops in transportation routes.
+
+        Provides full CRUD operations for Stop objects.
+        Supports searching by address, PO numbers, and stop number.
+        Results are ordered by start_range by default.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Stop.
+        required: true
+      tags:
+      - stops
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedStop'
+            examples:
+              CreateStopRequest:
+                value:
+                  stop_number: 1
+                  address: 1
+                  start_range: '2024-01-15T08:00:00Z'
+                  end_range: '2024-01-15T12:00:00Z'
+                  action: LL
+                  po_numbers: PO-12345
+                  driver_notes: Dock 5, call on arrival
+                summary: Create a new stop within a leg
+                description: Request body for creating a stop. The leg field is set
+                  by the parent serializer.
+              UpdateStopRequest:
+                value:
+                  id: 1
+                  stop_number: 1
+                  address: 2
+                  start_range: '2024-01-15T09:00:00Z'
+                  end_range: '2024-01-15T13:00:00Z'
+                  action: LU
+                  po_numbers: PO-12345, PO-12346
+                  driver_notes: 'Updated: Use rear entrance'
+                summary: Update existing stop with ID
+                description: Include the stop ID when updating an existing stop
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStop'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedStop'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stop'
+              examples:
+                StopResponse:
+                  value:
+                    id: 1
+                    leg: 1
+                    stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    timestamp: '2024-01-10T10:30:00Z'
+                    action: LL
+                    po_numbers: PO-12345
+                    driver_notes: Dock 5, call on arrival
+                  summary: Full stop object in response
+          description: ''
+    delete:
+      operationId: stops_destroy
+      description: |-
+        ViewSet for managing stops in transportation routes.
+
+        Provides full CRUD operations for Stop objects.
+        Supports searching by address, PO numbers, and stop number.
+        Results are ordered by start_range by default.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Stop.
+        required: true
+      tags:
+      - stops
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    ActionEnum:
+      enum:
+      - LL
+      - LU
+      - HL
+      - LD
+      - EMPP
+      - EMPD
+      - HUBP
+      - HUBD
+      type: string
+      description: |-
+        * `LL` - LIVE LOAD
+        * `LU` - LIVE UNLOAD
+        * `HL` - HOOK LOADED
+        * `LD` - DROP LOADED
+        * `EMPP` - EMPTY PICKUP
+        * `EMPD` - EMPTY DROP
+        * `HUBP` - HUB PICKUP
+        * `HUBD` - HUB DROPOFF
+    Address:
+      type: object
+      description: Serializer for the Address model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+          maxLength: 2
+        zip_code:
+          type: string
+          maxLength: 10
+        country:
+          type: string
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+      required:
+      - city
+      - id
+      - state
+      - street
+      - zip_code
+    AddressUsageAccumulate:
+      type: object
+      description: Serializer for the AddressUsageAccumulate model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        address:
+          type: integer
+        address_detail:
+          allOf:
+          - $ref: '#/components/schemas/Address'
+          readOnly: true
+        last_used:
+          type: string
+          format: date-time
+      required:
+      - address
+      - address_detail
+      - id
+    AddressUsageByCustomer:
+      type: object
+      description: Serializer for the AddressUsageByCustomer model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        address:
+          type: integer
+        address_detail:
+          allOf:
+          - $ref: '#/components/schemas/Address'
+          readOnly: true
+        customer:
+          type: integer
+        last_used:
+          type: string
+          format: date-time
+        times_used:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+      required:
+      - address
+      - address_detail
+      - customer
+      - id
+      - last_used
+    AddressUsageByCustomerAccumulate:
+      type: object
+      description: Serializer for the AddressUsageByCustomerAccumulate model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        address:
+          type: integer
+        address_detail:
+          allOf:
+          - $ref: '#/components/schemas/Address'
+          readOnly: true
+        customer:
+          type: integer
+        last_used:
+          type: string
+          format: date-time
+      required:
+      - address
+      - address_detail
+      - customer
+      - id
+    BillingStatusEnum:
+      enum:
+      - paperwork_pending
+      - pending_delivery
+      - billed
+      - rejected
+      - paid
+      type: string
+      description: |-
+        * `paperwork_pending` - Paperwork Pending
+        * `pending_delivery` - Pending Delivery
+        * `billed` - Billed
+        * `rejected` - Rejected
+        * `paid` - Paid
+    BlankEnum:
+      enum:
+      - ''
+    Carrier:
+      type: object
+      description: Serializer for Carrier model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        carrier_name:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        contractor:
+          type: boolean
+        drivers:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverList'
+          readOnly: true
+      required:
+      - carrier_name
+      - drivers
+      - id
+    CarrierList:
+      type: object
+      description: Lightweight serializer for Carrier list views.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        carrier_name:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 20
+        contractor:
+          type: boolean
+        driver_count:
+          type: string
+          readOnly: true
+      required:
+      - carrier_name
+      - driver_count
+      - id
+    Customer:
+      type: object
+      description: Serializer for Customer model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        customer_name:
+          type: string
+          maxLength: 255
+        address:
+          type: integer
+          nullable: true
+        phone_number:
+          type: string
+          maxLength: 20
+        representatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerRepresentative'
+          readOnly: true
+        ap_emails:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerAP'
+          readOnly: true
+        representative_ids:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+        ap_email_ids:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+      required:
+      - ap_emails
+      - customer_name
+      - id
+      - representatives
+    CustomerAP:
+      type: object
+      description: Serializer for CustomerAP model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone_number:
+          type: string
+          maxLength: 20
+        payment_type:
+          $ref: '#/components/schemas/PaymentTypeEnum'
+      required:
+      - email
+      - id
+    CustomerList:
+      type: object
+      description: Lightweight serializer for Customer list views.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        customer_name:
+          type: string
+          maxLength: 255
+        phone_number:
+          type: string
+          maxLength: 20
+      required:
+      - customer_name
+      - id
+    CustomerRepresentative:
+      type: object
+      description: Serializer for CustomerRepresentative model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone_number:
+          type: string
+          maxLength: 20
+      required:
+      - id
+      - name
+    Driver:
+      type: object
+      description: Serializer for Driver model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        full_name:
+          type: string
+          readOnly: true
+        phone_number:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: integer
+          nullable: true
+        carrier:
+          type: integer
+          nullable: true
+      required:
+      - first_name
+      - full_name
+      - id
+      - last_name
+      - phone_number
+    DriverList:
+      type: object
+      description: Lightweight serializer for Driver list views.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        phone_number:
+          type: string
+          maxLength: 20
+        carrier:
+          type: integer
+          nullable: true
+      required:
+      - full_name
+      - id
+      - phone_number
+    Leg:
+      type: object
+      description: |-
+        Declarative mixin that handles nested writes automatically using 'nested_relations'.
+
+        Features:
+        - Atomic Transactions: Entire operation is all-or-nothing.
+        - Order Preservation: Processes nested relations in the order defined.
+        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
+      properties:
+        id:
+          type: integer
+        load:
+          type: integer
+          readOnly: true
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stop'
+      required:
+      - load
+    Load:
+      type: object
+      description: |-
+        Declarative mixin that handles nested writes automatically using 'nested_relations'.
+
+        Features:
+        - Atomic Transactions: Entire operation is all-or-nothing.
+        - Order Preservation: Processes nested relations in the order defined.
+        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        reference_number:
+          type: string
+        bol_number:
+          type: string
+        customer:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        billing_status:
+          $ref: '#/components/schemas/BillingStatusEnum'
+        trailer_type:
+          oneOf:
+          - $ref: '#/components/schemas/TrailerTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        legs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - updated_at
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+      - email
+      - password
+    PatchedAddress:
+      type: object
+      description: Serializer for the Address model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+          maxLength: 2
+        zip_code:
+          type: string
+          maxLength: 10
+        country:
+          type: string
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+    PatchedCarrier:
+      type: object
+      description: Serializer for Carrier model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        carrier_name:
+          type: string
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        contractor:
+          type: boolean
+        drivers:
+          type: array
+          items:
+            $ref: '#/components/schemas/DriverList'
+          readOnly: true
+    PatchedCustomer:
+      type: object
+      description: Serializer for Customer model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        customer_name:
+          type: string
+          maxLength: 255
+        address:
+          type: integer
+          nullable: true
+        phone_number:
+          type: string
+          maxLength: 20
+        representatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerRepresentative'
+          readOnly: true
+        ap_emails:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerAP'
+          readOnly: true
+        representative_ids:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+        ap_email_ids:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+    PatchedCustomerAP:
+      type: object
+      description: Serializer for CustomerAP model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone_number:
+          type: string
+          maxLength: 20
+        payment_type:
+          $ref: '#/components/schemas/PaymentTypeEnum'
+    PatchedCustomerRepresentative:
+      type: object
+      description: Serializer for CustomerRepresentative model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone_number:
+          type: string
+          maxLength: 20
+    PatchedDriver:
+      type: object
+      description: Serializer for Driver model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        full_name:
+          type: string
+          readOnly: true
+        phone_number:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: integer
+          nullable: true
+        carrier:
+          type: integer
+          nullable: true
+    PatchedLeg:
+      type: object
+      description: |-
+        Declarative mixin that handles nested writes automatically using 'nested_relations'.
+
+        Features:
+        - Atomic Transactions: Entire operation is all-or-nothing.
+        - Order Preservation: Processes nested relations in the order defined.
+        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
+      properties:
+        id:
+          type: integer
+        load:
+          type: integer
+          readOnly: true
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stop'
+    PatchedLoad:
+      type: object
+      description: |-
+        Declarative mixin that handles nested writes automatically using 'nested_relations'.
+
+        Features:
+        - Atomic Transactions: Entire operation is all-or-nothing.
+        - Order Preservation: Processes nested relations in the order defined.
+        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        reference_number:
+          type: string
+        bol_number:
+          type: string
+        customer:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        billing_status:
+          $ref: '#/components/schemas/BillingStatusEnum'
+        trailer_type:
+          oneOf:
+          - $ref: '#/components/schemas/TrailerTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        legs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedShipmentAssignment:
+      type: object
+      description: |-
+        Serializer for the ShipmentAssignment model.
+
+        Accepts primary keys for carrier, driver, and leg on input.
+        Returns full nested JSON for carrier and driver on output.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        carrier:
+          type: integer
+        driver:
+          type: integer
+        leg:
+          type: integer
+          writeOnly: true
+    PatchedStop:
+      type: object
+      properties:
+        id:
+          type: integer
+        leg:
+          type: integer
+          readOnly: true
+        stop_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Order of this stop within the leg
+        start_range:
+          type: string
+          format: date-time
+          description: The earliest time the stop can occur
+        end_range:
+          type: string
+          format: date-time
+          nullable: true
+          description: The latest time the stop can occur (optional)
+        timestamp:
+          type: string
+          format: date-time
+          description: When this stop was created
+        action:
+          allOf:
+          - $ref: '#/components/schemas/ActionEnum'
+          description: |-
+            The type of action to be performed at this stop
+
+            * `LL` - LIVE LOAD
+            * `LU` - LIVE UNLOAD
+            * `HL` - HOOK LOADED
+            * `LD` - DROP LOADED
+            * `EMPP` - EMPTY PICKUP
+            * `EMPD` - EMPTY DROP
+            * `HUBP` - HUB PICKUP
+            * `HUBD` - HUB DROPOFF
+        po_numbers:
+          type: string
+          description: Purchase order numbers associated with this stop
+        driver_notes:
+          type: string
+          description: Notes for the driver regarding this stop
+        address:
+          type: integer
+          description: The address where this stop takes place
+    PaymentTypeEnum:
+      enum:
+      - quickpay
+      - standard
+      type: string
+      description: |-
+        * `quickpay` - Quick Pay
+        * `standard` - Standard Pay
+    ShipmentAssignment:
+      type: object
+      description: |-
+        Serializer for the ShipmentAssignment model.
+
+        Accepts primary keys for carrier, driver, and leg on input.
+        Returns full nested JSON for carrier and driver on output.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        carrier:
+          type: integer
+        driver:
+          type: integer
+        leg:
+          type: integer
+          writeOnly: true
+      required:
+      - carrier
+      - driver
+      - id
+      - leg
+    StatusEnum:
+      enum:
+      - pending
+      - assigned
+      - dispatched
+      - in_transit
+      - times_missing
+      - rescheduled
+      - claim
+      - at_hub
+      - complete
+      - tonu
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `assigned` - Assigned
+        * `dispatched` - Dispatched
+        * `in_transit` - In Transit
+        * `times_missing` - Times Missing
+        * `rescheduled` - Rescheduled
+        * `claim` - Claim
+        * `at_hub` - At Hub
+        * `complete` - Complete
+        * `tonu` - TONU
+    Stop:
+      type: object
+      properties:
+        id:
+          type: integer
+        leg:
+          type: integer
+          readOnly: true
+        stop_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Order of this stop within the leg
+        start_range:
+          type: string
+          format: date-time
+          description: The earliest time the stop can occur
+        end_range:
+          type: string
+          format: date-time
+          nullable: true
+          description: The latest time the stop can occur (optional)
+        timestamp:
+          type: string
+          format: date-time
+          description: When this stop was created
+        action:
+          allOf:
+          - $ref: '#/components/schemas/ActionEnum'
+          description: |-
+            The type of action to be performed at this stop
+
+            * `LL` - LIVE LOAD
+            * `LU` - LIVE UNLOAD
+            * `HL` - HOOK LOADED
+            * `LD` - DROP LOADED
+            * `EMPP` - EMPTY PICKUP
+            * `EMPD` - EMPTY DROP
+            * `HUBP` - HUB PICKUP
+            * `HUBD` - HUB DROPOFF
+        po_numbers:
+          type: string
+          description: Purchase order numbers associated with this stop
+        driver_notes:
+          type: string
+          description: Notes for the driver regarding this stop
+        address:
+          type: integer
+          description: The address where this stop takes place
+      required:
+      - action
+      - address
+      - leg
+      - start_range
+      - stop_number
+    TrailerTypeEnum:
+      enum:
+      - SMALL_20
+      - SMALL_28
+      - MEDIUM_40
+      - MEDIUM_45
+      - LARGE_48
+      - LARGE_53
+      type: string
+      description: |-
+        * `SMALL_20` - 20'
+        * `SMALL_28` - 28'
+        * `MEDIUM_40` - 40'
+        * `MEDIUM_45` - 45'
+        * `LARGE_48` - 48'
+        * `LARGE_53` - 53'
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
