@@ -129,7 +129,7 @@ class LoadViewSet(TMSViewMixin, viewsets.ModelViewSet):
         unassigned_leg_subquery = Leg.objects.filter(
             load=OuterRef('pk')
         ).exclude(
-            shipment_assignments__isnull=False
+            shipment_assignment__isnull=False
         )
 
         # Subquery: First pickup time for this load on this day
@@ -158,7 +158,7 @@ class LoadViewSet(TMSViewMixin, viewsets.ModelViewSet):
                         queryset=Stop.objects.select_related('address').order_by('stop_number')
                     ),
                     Prefetch(
-                        'shipment_assignments',
+                        'shipment_assignment',
                         queryset=ShipmentAssignment.objects.select_related('carrier', 'driver')
                     ),
                 ).order_by('pk')
@@ -261,7 +261,7 @@ class LoadViewSet(TMSViewMixin, viewsets.ModelViewSet):
         unassigned_leg_subquery = Leg.objects.filter(
             load=OuterRef('pk')
         ).exclude(
-            shipment_assignments__isnull=False
+            shipment_assignment__isnull=False
         )
 
         # Subquery: First pickup time for this load within the week
@@ -290,7 +290,7 @@ class LoadViewSet(TMSViewMixin, viewsets.ModelViewSet):
                         queryset=Stop.objects.select_related('address').order_by('stop_number')
                     ),
                     Prefetch(
-                        'shipment_assignments',
+                        'shipment_assignment',
                         queryset=ShipmentAssignment.objects.select_related('carrier', 'driver')
                     ),
                 ).order_by('pk')

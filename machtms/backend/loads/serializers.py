@@ -102,7 +102,7 @@ class ShipmentAssignmentDailySerializer(TMSBaseSerializer):
 class LegDailySerializer(TMSBaseSerializer):
     """Leg serializer with stops and assignment info for daily calendar view."""
     stops = StopDailySerializer(many=True, read_only=True)
-    shipment_assignments = ShipmentAssignmentDailySerializer(many=True, read_only=True)
+    shipment_assignment = ShipmentAssignmentDailySerializer(read_only=True)
     is_assigned = serializers.SerializerMethodField()
 
     class Meta(TMSBaseSerializer.Meta):
@@ -110,13 +110,13 @@ class LegDailySerializer(TMSBaseSerializer):
         fields = TMSBaseSerializer.Meta.fields + [
             'id',
             'stops',
-            'shipment_assignments',
+            'shipment_assignment',
             'is_assigned',
         ]
 
     def get_is_assigned(self, obj):
-        """Check if leg has any shipment assignments (uses prefetched data)."""
-        return len(obj.shipment_assignments.all()) > 0
+        """Check if leg has a shipment assignment."""
+        return hasattr(obj, 'shipment_assignment') and obj.shipment_assignment is not None
 
 
 class LoadDailySerializer(TMSBaseSerializer):

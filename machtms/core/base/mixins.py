@@ -268,6 +268,13 @@ class NestedUpdateMixin:
                     if nested_field in item_data:
                         nested_data_map[nested_field] = item_data.pop(nested_field)
 
+                # Extract OneToOne relation data before creating (reverse relations can't be passed to create())
+                one_to_one_fields = getattr(serializer_class, 'one_to_one_fields', {})
+                one_to_one_data_map = {}
+                for field_name in one_to_one_fields.keys():
+                    if field_name in item_data:
+                        one_to_one_data_map[field_name] = item_data.pop(field_name)
+
                 # Build create kwargs: parent FK + extra kwargs + validated item data
                 create_kwargs = {config.parent_field_name: parent_instance}
                 create_kwargs.update(extra_save_kwargs)
@@ -284,6 +291,16 @@ class NestedUpdateMixin:
                             config=nested_config,
                             extra_save_kwargs={}
                         )
+
+                # Handle OneToOne relations for the child instance
+                for field_name, handler_method_name in one_to_one_fields.items():
+                    if field_name in one_to_one_data_map:
+                        # Get the handler method from the serializer class
+                        # and call it with the instance and data
+                        child_serializer = serializer_class(context=self.context)
+                        handler_method = getattr(child_serializer, handler_method_name, None)
+                        if handler_method:
+                            handler_method(instance, one_to_one_data_map[field_name])
 
             results.append(instance)
 

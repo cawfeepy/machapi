@@ -40,10 +40,10 @@ class ShipmentAssignment(TMSModel):
         related_name='shipment_assignments',
         help_text='The driver assigned to this leg'
     )
-    leg = models.ForeignKey(
+    leg = models.OneToOneField(
         Leg,
         on_delete=models.CASCADE,
-        related_name='shipment_assignments',
+        related_name='shipment_assignment',
         help_text='The leg this assignment is for'
     )
 

@@ -4,7 +4,7 @@ from machtms.backend.carriers.models import Driver
 from machtms.backend.legs.models import ShipmentAssignment
 
 
-def swap_shipment_assignments(swap_data: list[dict], organization) -> dict:
+def swap_shipment_assignment(swap_data: list[dict], organization) -> dict:
     """
     Swap drivers between legs by deleting old assignments and creating new ones.
 

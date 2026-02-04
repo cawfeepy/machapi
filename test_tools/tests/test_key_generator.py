@@ -15,7 +15,7 @@ Test Categories:
 import time
 import unittest
 
-from machtms.test_tools.key_generator import KeySequenceGenerator, KeysExhaustedError
+from test_tools.key_generator import KeySequenceGenerator, KeysExhaustedError
 
 
 class TestKeySequenceGeneratorUniqueness(unittest.TestCase):

@@ -48,56 +48,6 @@ class ShipmentAssignmentNestedSerializer(TMSBaseSerializer):
         return attrs
 
 
-@extend_schema_serializer(examples=LEG_EXAMPLES)
-class LegSerializer(AutoNestedMixin, TMSBaseSerializer):
-    id = serializers.IntegerField(required=False)
-    load = serializers.PrimaryKeyRelatedField(read_only=True)
-    stops = StopSerializer(many=True, required=False)
-    shipment_assignments = ShipmentAssignmentNestedSerializer(many=True, required=False)
-
-    class Meta:
-        model = Leg
-        fields = ["id", "load", "stops", "shipment_assignments"]
-
-    INVALID_TRANSITIONS = {
-        "LL": {"LL", "HL", "EMPP", "EMPD", "HUBP"},
-        "HL": {"LL", "HL", "EMPP", "EMPD", "HUBP"},
-        "LU": {"LU", "LD", "HL", "HUBP"},
-        "EMPP": {"EMPP", "LU", "LD", "HL", "HUBP"},
-        "LD": {"LL", "LU", "LD", "EMPD", "HUBD", "TW"},
-        "EMPD": {"LL", "LU", "LD", "EMPD", "HUBD", "TW"},
-        "HUBD": {"LL", "LU", "LD", "EMPD", "HUBD", "TW"},
-        "HUBP": {"HUBP", "EMPP", "HL"},
-    }
-
-    nested_relations = {
-        'stops': NestedRelationConfig(
-            parent_field_name='leg',
-            related_manager_name='stops',
-            serializer_class=StopSerializer,
-        ),
-        'shipment_assignments': NestedRelationConfig(
-            parent_field_name='leg',
-            related_manager_name='shipment_assignments',
-            serializer_class=ShipmentAssignmentNestedSerializer,
-        )
-    }
-
-    def validate(self, attrs):
-        stops_data = attrs.get("stops") or []
-
-        for i in range(1, len(stops_data)):
-            prev_action = stops_data[i - 1].get("action")
-            curr_action = stops_data[i].get("action")
-            invalid_next = self.INVALID_TRANSITIONS.get(prev_action, set())
-            if curr_action in invalid_next:
-                raise ValidationError(
-                    {"stops": f"Action {curr_action} cannot follow {prev_action} at index {i}."}
-                )
-
-        return attrs
-
-
 class ShipmentAssignmentSerializer(TMSBaseSerializer):
     """
     Serializer for the ShipmentAssignment model.
@@ -126,6 +76,142 @@ class ShipmentAssignmentSerializer(TMSBaseSerializer):
             'leg',
         ]
         read_only_fields = ['id']
+
+
+@extend_schema_serializer(examples=LEG_EXAMPLES)
+class LegSerializer(AutoNestedMixin, TMSBaseSerializer):
+    id = serializers.IntegerField(required=False)
+    load = serializers.PrimaryKeyRelatedField(read_only=True)
+    stops = StopSerializer(many=True, required=False)
+    shipment_assignment = ShipmentAssignmentNestedSerializer(required=False, allow_null=True)
+
+    class Meta:
+        model = Leg
+        fields = ["id", "load", "stops", "shipment_assignment"]
+
+    INVALID_TRANSITIONS = {
+        "LL": {"LL", "HL", "EMPP", "EMPD", "HUBP"},
+        "HL": {"LL", "HL", "EMPP", "EMPD", "HUBP"},
+        "LU": {"LU", "LD", "HL", "HUBP"},
+        "EMPP": {"EMPP", "LU", "LD", "HL", "HUBP"},
+        "LD": {"LL", "LU", "LD", "EMPD", "HUBD", "TW"},
+        "EMPD": {"LL", "LU", "LD", "EMPD", "HUBD", "TW"},
+        "HUBD": {"LL", "LU", "LD", "EMPD", "HUBD", "TW"},
+        "HUBP": {"HUBP", "EMPP", "HL"},
+    }
+
+    nested_relations = {
+        'stops': NestedRelationConfig(
+            parent_field_name='leg',
+            related_manager_name='stops',
+            serializer_class=StopSerializer,
+        ),
+    }
+
+    # OneToOne relation fields mapped to their handler method names
+    one_to_one_fields = {
+        'shipment_assignment': '_handle_shipment_assignment',
+    }
+
+    def validate(self, attrs):
+        stops_data = attrs.get("stops") or []
+
+        for i in range(1, len(stops_data)):
+            prev_action = stops_data[i - 1].get("action")
+            curr_action = stops_data[i].get("action")
+            invalid_next = self.INVALID_TRANSITIONS.get(prev_action, set())
+            if curr_action in invalid_next:
+                raise ValidationError(
+                    {"stops": f"Action {curr_action} cannot follow {prev_action} at index {i}."}
+                )
+
+        return attrs
+
+    def _handle_shipment_assignment(self, leg_instance, assignment_data, organization=None):
+        """
+        Handle OneToOne shipment_assignment upsert.
+
+        Args:
+            leg_instance: The Leg instance
+            assignment_data: Can be:
+                - None: Delete existing assignment
+                - int (PK): No-op, already assigned
+                - dict with id: Update existing assignment
+                - dict without id: Create new assignment
+            organization: Organization ID or instance
+        """
+        if assignment_data is None:
+            # Delete existing assignment if any
+            try:
+                leg_instance.shipment_assignment.delete()
+            except ShipmentAssignment.DoesNotExist:
+                pass
+            return None
+
+        if isinstance(assignment_data, int):
+            # Already assigned, no action needed
+            return None
+
+        # Dict with carrier/driver data
+        carrier = assignment_data.get('carrier')
+        driver = assignment_data.get('driver')
+        assignment_id = assignment_data.get('id')
+
+        if assignment_id:
+            # Update existing assignment
+            try:
+                existing = ShipmentAssignment.objects.get(pk=assignment_id)
+                existing.carrier = carrier
+                existing.driver = driver
+                existing.save()
+                return existing
+            except ShipmentAssignment.DoesNotExist:
+                pass  # Fall through to create
+
+        # Create new assignment - delete any existing first (OneToOne constraint)
+        try:
+            leg_instance.shipment_assignment.delete()
+        except ShipmentAssignment.DoesNotExist:
+            pass
+
+        create_kwargs = {
+            'leg': leg_instance,
+            'carrier': carrier,
+            'driver': driver,
+        }
+        if organization:
+            create_kwargs['organization_id'] = organization
+        return ShipmentAssignment.objects.create(**create_kwargs)
+
+    def create(self, validated_data):
+        # Pop shipment_assignment before parent create
+        assignment_data = validated_data.pop('shipment_assignment', None)
+
+        # Let parent handle the rest (including stops via AutoNestedMixin)
+        instance = super().create(validated_data)
+
+        # Handle shipment_assignment OneToOne relation
+        if assignment_data is not None:
+            org = self.context.get('request').organization if self.context.get('request') else None
+            self._handle_shipment_assignment(instance, assignment_data, organization=org)
+
+        return instance
+
+    def update(self, instance, validated_data):
+        # Pop shipment_assignment before parent update
+        assignment_data = validated_data.pop('shipment_assignment', None)
+
+        # Let parent handle the rest (including stops via AutoNestedMixin)
+        instance = super().update(instance, validated_data)
+
+        # Handle shipment_assignment OneToOne relation if provided in request
+        if 'shipment_assignment' in self.initial_data:
+            org = self.context.get('request').organization if self.context.get('request') else None
+            self._handle_shipment_assignment(instance, assignment_data, organization=org)
+
+        return instance
+
+
 
 
 class ShipmentAssignmentCreateItemSerializer(TMSBaseSerializer):

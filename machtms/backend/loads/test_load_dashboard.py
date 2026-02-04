@@ -444,7 +444,7 @@ class CalendarDayEndpointTests(APITestCase):
 
         leg_data = response.data['loads'][0]['legs'][0]
         self.assertIn('is_assigned', leg_data)
-        self.assertIn('shipment_assignments', leg_data)
+        self.assertIn('shipment_assignment', leg_data)
         self.assertIn('stops', leg_data)
         self.assertTrue(leg_data['is_assigned'])
 
@@ -717,7 +717,7 @@ class CalendarWeekEndpointTests(APITestCase):
         leg_data = response.data['days']['monday'][0]['legs'][0]
         self.assertIn('is_assigned', leg_data)
         self.assertIn('stops', leg_data)
-        self.assertIn('shipment_assignments', leg_data)
+        self.assertIn('shipment_assignment', leg_data)
 
     def test_assigned_leg_has_shipment_assignment_data(self):
         """Test that assigned leg includes carrier and driver info."""
@@ -729,9 +729,9 @@ class CalendarWeekEndpointTests(APITestCase):
 
         leg_data = response.data['days']['monday'][0]['legs'][0]
         self.assertTrue(leg_data['is_assigned'])
-        self.assertGreater(len(leg_data['shipment_assignments']), 0)
+        self.assertIsNotNone(leg_data['shipment_assignment'])
 
-        assignment = leg_data['shipment_assignments'][0]
+        assignment = leg_data['shipment_assignment']
         self.assertIn('carrier', assignment)
         self.assertIn('driver', assignment)
 

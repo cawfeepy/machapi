@@ -115,9 +115,8 @@ LEG_EXAMPLES = [
                     'action': 'LU',
                 },
             ],
-            'shipment_assignments': [
-                {'carrier': 1, 'driver': 5},
-            ]
+            'shipment_assignment': {'carrier': 1, 'driver': 5},
+            
         },
         request_only=True,
     ),
@@ -180,21 +179,6 @@ LEG_EXAMPLES = [
         request_only=True,
     ),
     OpenApiExample(
-        'Update Leg with Shipment Assignments',
-        summary='Update leg shipment assignments using upsert',
-        description='Items with IDs are updated, items without IDs are created. '
-                    'Existing assignments not included in payload will be deleted. '
-                    'Send empty array to delete all assignments.',
-        value={
-            'id': 1,
-            'shipment_assignments': [
-                {'id': 10, 'carrier': 1, 'driver': 5},
-                {'carrier': 1, 'driver': 6},
-            ]
-        },
-        request_only=True,
-    ),
-    OpenApiExample(
         'Leg Response',
         summary='Leg response with transformed structure',
         description='Response format with leg_id and load_id fields',
@@ -227,13 +211,11 @@ LEG_EXAMPLES = [
                     'driver_notes': 'Rear entrance',
                 },
             ],
-            'shipment_assignments': [
-                {
-                    'id': 10,
-                    'carrier': 1,
-                    'driver': 5,
-                },
-            ],
+            'shipment_assignment': {
+                'id': 10,
+                'carrier': 1,
+                'driver': 5,
+            },
         },
         response_only=True,
     ),

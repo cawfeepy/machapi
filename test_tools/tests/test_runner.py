@@ -14,7 +14,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from machtms.test_tools.test_runner import TestRunner, TestResult
+from test_tools.test_runner import TestRunner, TestResult
 
 
 class TestResultTestCase(TestCase):

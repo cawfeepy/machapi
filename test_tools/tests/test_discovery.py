@@ -17,7 +17,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from machtms.test_tools.test_discovery import (
+from test_tools.test_discovery import (
     TestDiscovery,
     TestModule,
     TestClass,

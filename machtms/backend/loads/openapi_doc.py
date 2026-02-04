@@ -223,7 +223,7 @@ CALENDAR_DAY_EXAMPLES = [
                         {
                             'id': 101,
                             'is_assigned': False,
-                            'shipment_assignments': [],
+                            'shipment_assignment': [],
                             'stops': [
                                 {
                                     'id': 201,
@@ -283,7 +283,7 @@ CALENDAR_DAY_EXAMPLES = [
                         {
                             'id': 102,
                             'is_assigned': True,
-                            'shipment_assignments': [
+                            'shipment_assignment': [
                                 {
                                     'id': 50,
                                     'carrier': {

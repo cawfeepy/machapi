@@ -66,7 +66,7 @@ GET /api/loads/calendar-day/?date=2024-02-05
         {
           "id": 101,
           "is_assigned": false,
-          "shipment_assignments": [],
+          "shipment_assignment": null,
           "stops": [
             {
               "id": 201,
@@ -135,7 +135,7 @@ GET /api/loads/calendar-day/?date=2024-02-05
 |-------|------|-------------|
 | `id` | integer | Leg ID |
 | `is_assigned` | boolean | True if leg has a ShipmentAssignment |
-| `shipment_assignments` | array | Array of assignment objects with carrier/driver |
+| `shipment_assignment` | object/null | Assignment object with carrier/driver, or null if unassigned |
 | `stops` | array | Array of stop objects |
 
 ### Sorting Behavior
@@ -392,7 +392,7 @@ interface Stop {
 interface Leg {
   id: number;
   is_assigned: boolean;
-  shipment_assignments: ShipmentAssignment[];
+  shipment_assignment: ShipmentAssignment | null;
   stops: Stop[];
 }
 

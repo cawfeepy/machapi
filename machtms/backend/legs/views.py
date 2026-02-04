@@ -14,7 +14,7 @@ from machtms.backend.legs.serializers import (
     ShipmentAssignmentBulkDeleteSerializer,
     ShipmentAssignmentBulkDeleteResponseSerializer,
 )
-from machtms.backend.legs.utils import swap_shipment_assignments
+from machtms.backend.legs.utils import swap_shipment_assignment
 
 
 class LegViewSet(TMSViewMixin, viewsets.ModelViewSet):
@@ -59,7 +59,7 @@ class ShipmentAssignmentViewSet(TMSViewMixin, viewsets.ModelViewSet):
             for item in serializer.validated_data['swap']
         ]
 
-        result = swap_shipment_assignments(swap_data, request.organization)
+        result = swap_shipment_assignment(swap_data, request.organization)
 
         return Response({
             'deleted_count': result['deleted_count'],
