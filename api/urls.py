@@ -32,7 +32,8 @@ urlpatterns = [
         # path('', include('machtms.backend.financials.urls')),
         path('', include('machtms.backend.DocumentManager.urls')),
         path('', include('machtms.backend.GmailAPI.urls')),
+        path('', include('machtms.backend.agents.urls')),
     ])),
     path("api/schema/", SpectacularAPIView.as_view(renderer_classes=[OpenApiJsonRenderer]), name='api^schema'),
-    path("api/docs/", SpectacularSwaggerView.as_view(), name='api^docs'),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name='api^schema'), name='api^docs'),
 ]

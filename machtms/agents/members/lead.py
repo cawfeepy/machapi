@@ -1,19 +1,19 @@
 from agno.models.openai import OpenAIChat
 from agno.team import Team
 
-from .planner import get_planner_agent
+from .dispatcher import dispatcher
+from .planner import planner
 
-
-def get_lead_agent(organization):
-    """Factory function to create organization-scoped lead agent."""
-    return Team(
-        name="TMS Lead Agent",
-        model=OpenAIChat(id="gpt-4o"),
-        members=[get_planner_agent(organization)],
-        instructions=[
-            "You are the lead coordinator for TMS operations.",
-            "Route swap and driver exchange queries to the Swap Planner.",
-            "If the user wants to swap drivers between loads, delegate to Swap Planner.",
-            "Ensure the user provides both load reference numbers before delegating.",
-        ],
-    )
+lead_team = Team(
+    name="TMS Lead Agent",
+    model=OpenAIChat(id="gpt-5.2"),
+    members=[dispatcher, planner],
+    instructions=[
+        "You are the lead coordinator for TMS operations.",
+        "Route load queries, daily schedule requests, and load searches to the Dispatcher.",
+        "Route swap and driver exchange queries to the Swap Planner.",
+        "If the user wants to swap drivers between loads, delegate to Swap Planner.",
+        "If the user asks about today's loads, a load schedule, or wants to search for loads, delegate to Dispatcher.",
+        "Ensure the user provides both load reference numbers before delegating swaps.",
+    ],
+)
