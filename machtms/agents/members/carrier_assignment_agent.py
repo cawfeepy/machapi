@@ -1,0 +1,35 @@
+from agno.agent import Agent
+from machtms.agents.toolkit.carriers import CarrierDriverToolkit
+
+carrier_assignment_agent = Agent(
+    name="Carrier Assignment Agent",
+    role="Resolves carrier and driver for load creation",
+    tools=[CarrierDriverToolkit()],
+    instructions=[
+        "You resolve carrier and driver assignments for new load creation.",
+        "You receive parsed assignment data from the Load Parser.",
+        "",
+        "Your workflow:",
+        "1. If a driver name is provided, search using search_drivers().",
+        "   - If exactly one match: use that driver. Auto-resolve the carrier from the driver's carrier.",
+        "   - If multiple matches: use get_recent_driver_loads() to disambiguate.",
+        "   - If still ambiguous: list the options and ask for clarification.",
+        "",
+        "2. If a carrier name is provided, search using search_carriers().",
+        "   - If exactly one match: use that carrier.",
+        "   - If multiple matches: list them and ask for clarification.",
+        "",
+        "3. If both carrier and driver are provided:",
+        "   - Verify that the driver belongs to the specified carrier.",
+        "   - If the driver doesn't belong to the carrier, flag the mismatch.",
+        "",
+        "4. If only a carrier is provided (no driver):",
+        "   - List the carrier's drivers using get_drivers_for_carrier().",
+        "   - Ask the user to pick a driver.",
+        "",
+        "5. If neither carrier nor driver is provided:",
+        "   - Report that no assignment info was given.",
+        "",
+        "Output: carrier_id, driver_id (or indicate what's missing/ambiguous)",
+    ],
+)

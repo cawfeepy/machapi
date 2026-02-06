@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -109,6 +110,7 @@ class LoadToolkit(Toolkit):
         super().__init__(name="load_toolkit")
         self.register(self.get_todays_loads)
         self.register(self.search_loads)
+        self.register(self.create_load)
 
     @staticmethod
     def _format_load(load, display_tz, include_date=False):
@@ -296,3 +298,85 @@ class LoadToolkit(Toolkit):
             result_lines.append("")
 
         return "\n".join(result_lines)
+
+    def create_load(self, run_context: RunContext, payload_json: str) -> str:
+        """Create a new load with nested legs, stops, and shipment assignment.
+
+        The payload_json must match the LoadSerializer's expected structure:
+        {
+            "customer": <int|null>,
+            "reference_number": "",
+            "bol_number": "",
+            "trailer_type": "",
+            "status": "pending",
+            "billing_status": "pending_delivery",
+            "legs": [
+                {
+                    "stops": [
+                        {
+                            "stop_number": 1,
+                            "address": <int>,
+                            "action": "LL",
+                            "start_range": "2025-01-01T16:00:00Z",
+                            "end_range": null,
+                            "po_numbers": "",
+                            "driver_notes": ""
+                        }
+                    ],
+                    "shipment_assignment": {
+                        "carrier": <int>,
+                        "driver": <int>
+                    }
+                }
+            ]
+        }
+
+        Args:
+            payload_json: JSON string matching the LoadSerializer structure.
+
+        Returns:
+            Confirmation with created load details, or validation errors.
+        """
+        try:
+            payload = json.loads(payload_json)
+        except json.JSONDecodeError as e:
+            return f"Error: Invalid JSON — {e}"
+
+        organization = run_context.dependencies["organization"]
+
+        # Build a mock request object for the serializer context.
+        # The serializer needs request.organization for CurrentOrganizationDefault.
+        from types import SimpleNamespace
+        mock_request = SimpleNamespace(
+            organization=organization.id,
+            user=SimpleNamespace(userprofile=None),
+        )
+
+        from machtms.backend.loads.serializers import LoadSerializer
+
+        serializer = LoadSerializer(
+            data=payload,
+            context={'request': mock_request},
+        )
+
+        if not serializer.is_valid():
+            error_lines = ["Validation errors:"]
+            for field, errors in serializer.errors.items():
+                if isinstance(errors, list):
+                    error_lines.append(f"  {field}: {'; '.join(str(e) for e in errors)}")
+                else:
+                    error_lines.append(f"  {field}: {errors}")
+            return "\n".join(error_lines)
+
+        load = serializer.save()
+
+        # Format confirmation
+        pt = ZoneInfo("America/Los_Angeles")
+        loaded = (
+            self._base_queryset(organization)
+            .filter(pk=load.pk)
+            .first()
+        )
+        if loaded:
+            return f"Load created successfully!\n\n{self._format_load(loaded, pt, include_date=True)}"
+        return f"Load created successfully (ID: {load.pk}, Reference: {load.reference_number})."

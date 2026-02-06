@@ -29,7 +29,7 @@ class AIEnvironmentDataCreator:
             organization=organization,
         )
 
-        addresses = AddressFactory.create_batch(5)
+        addresses = AddressFactory.create_batch(5, organization=organization)
 
         carriers = []
         drivers = []
