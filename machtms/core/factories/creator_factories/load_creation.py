@@ -241,7 +241,7 @@ class LoadCreationFactory:
 
             hours_offset = 4 * stop_index
             start_range = base_date + timedelta(hours=hours_offset)
-            end_range = start_range + timedelta(hours=2)
+            # end_range = start_range + timedelta(hours=2)
 
             stop = StopFactory.create(
                 leg=leg,
@@ -249,7 +249,7 @@ class LoadCreationFactory:
                 address=address,
                 action=action,
                 start_range=start_range,
-                end_range=end_range,
+                # end_range=end_range,
             )
             stops.append(stop)
 

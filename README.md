@@ -1,18 +1,10 @@
 # machTMS - Transportation Management System
 
-A Django REST Framework backend for managing transportation operations including loads, carriers, customers, and more.
-
-## ✨ Features
-
-- Web server to handle typical trucking operations
-- Copy dispatch text to send to drivers
-- Easily swap loads between two drivers
-- Dashboard showing loads for a single day, grouped by driver
+A Django REST Framework backend for managing transportation operations. Use agents to help with the boring stuff.
 
 ## 🚀 Roadmap / Future Features
 
 - Implement GmailAPI to bill customers directly from the TMS
-- Use an Agentic workflow to perform multiple tasks without clicking around
 - Analyze POD text and match to shipment automatically
 
 ## Prerequisites
@@ -122,23 +114,6 @@ Create a `.env.local` file in the project root with your configuration. Below ar
 |----------|---------|-------------|
 | `MAPS_API_KEY` | `None` | Google Maps API key |
 
-### Security Notes
-
-```
-DEBUG = False; will enable organization models
-INSECURE = True;
-* DO NOT USE IN PRODUCTION ENVIRONMENT
-* will remove permissions/authentication classes
-* removes CORS and CSRF security
-
-Production configuration:
-  DEBUG = False
-  INSECURE = False
-
-Staging with no security:
-  DEBUG = False
-  INSECURE = True
-```
 
 ## Database Setup
 
@@ -189,122 +164,5 @@ uv run python manage.py test machtms.backend.loads.tests
 
 # Run with verbosity
 uv run python manage.py test --verbosity=2
-```
-
-## API Documentation
-
-Once the server is running:
-
-- **Swagger UI**: http://localhost:8000/api/docs/
-- **OpenAPI Schema**: http://localhost:8000/api/schema/
-
-## Project Structure
-
-```
-machapi/
-├── api/                    # Project settings & configuration
-│   ├── settings/           # Split settings modules
-│   ├── celery.py           # Celery configuration
-│   ├── urls.py             # Root URL configuration
-│   └── runner.py           # Test runner
-├── machtms/                # Main Django application
-│   ├── backend/            # API components (loads, carriers, etc.)
-│   ├── core/               # Core utilities & services
-│   ├── migrations/         # Database migrations
-│   ├── urls.py             # App URL routes
-│   └── wsgi.py             # WSGI configuration
-├── environments.py         # Environment variable management
-├── manage.py               # Django management script
-├── pyproject.toml          # Dependencies (uv)
-└── uv.lock                 # Locked dependencies
-```
-
----
-
-## OpenAPI Schema Generation
-
-This project uses [drf-spectacular](https://drf-spectacular.readthedocs.io/) for OpenAPI 3.0 schema generation and [openapi-python-client](https://github.com/openapi-generators/openapi-python-client) to generate a typed Python client.
-
-### Generate OpenAPI Schema
-
-```bash
-uv run python manage.py spectacular --file schema.yaml --validate
-```
-
-This command:
-- Introspects all registered viewsets and serializers
-- Generates an OpenAPI 3.0 compliant schema
-- Validates the schema for errors
-- Outputs to `schema.yaml`
-
-#### Schema Generation Options
-
-```bash
-# Generate as JSON instead of YAML
-uv run python manage.py spectacular --file schema.json --format openapi-json
-
-# Generate without validation (faster, but may have issues)
-uv run python manage.py spectacular --file schema.yaml
-
-# View schema in terminal
-uv run python manage.py spectacular
-```
-
-### Generate Python Client
-
-After generating the schema, create a typed Python client:
-
-```bash
-# Remove existing client and regenerate
-rm -rf machtms/core/openapi_client
-
-# Generate new client
-uv run openapi-python-client generate \
-    --path schema.yaml \
-    --output-path machtms/core/openapi_client \
-    --meta none
-```
-
-The `--meta none` flag generates a minimal client without package metadata files.
-
-### One-Liner: Schema + Client Generation
-
-Regenerate both schema and client in one command:
-
-```bash
-uv run python manage.py spectacular --file schema.yaml --validate && \
-rm -rf machtms/core/openapi_client && \
-uv run openapi-python-client generate \
-    --path schema.yaml \
-    --output-path machtms/core/openapi_client \
-    --meta none
-```
-
-### Using the Generated Client
-
-The generated client provides typed functions for all API endpoints:
-
-```python
-from machtms.core.openapi_client.api.loads import (
-    loads_list,
-    loads_create,
-    loads_retrieve,
-    loads_update,
-    loads_partial_update,
-)
-from machtms.core.openapi_client.models import Load
-from machtms.core.openapi_client.models.status_enum import StatusEnum
-
-# Example: Create a load
-payload = {
-    'reference_number': 'REF-001',
-    'bol_number': 'BOL-001',
-    'customer': 1,
-    'status': StatusEnum.PENDING.value,
-}
-
-response = loads_create.sync_detailed(
-    client=api_client.with_body(payload),
-)
 ```
 
