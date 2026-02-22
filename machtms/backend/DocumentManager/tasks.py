@@ -10,7 +10,7 @@ from django.db.models import QuerySet
 from machtms.backend.loads.models import Load
 from machtms.backend.DocumentManager.models import (
     DirectUpload, PostShipmentDocument, SessionUploadLog, UploadLog)
-from machtms.backend.DocumentManager.utils import s3
+from machtms.core.utils import s3_utils as s3
 from machtms.backend.DocumentManager.utils.document_actions import DocumentActions
 
 

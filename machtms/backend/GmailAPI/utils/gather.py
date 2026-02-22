@@ -11,7 +11,7 @@ import pymupdf
 from typing import Tuple
 from machtms.backend.loads.serializers import LoadPDFSerializer
 from machtms.backend.loads.models import Load
-from machtms.backend.DocumentManager.utils import s3
+from machtms.core.utils import s3_utils as s3
 from machtms.core.utils.invoicing.main import generate_invoice
 
 import logging

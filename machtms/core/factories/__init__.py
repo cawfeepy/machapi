@@ -4,8 +4,10 @@ from machtms.core.factories.creator_factories import (
     FakeAddressCreator,
     FakeCarrierCreator,
     FakeStopCreator,
+    HOSComplianceError,
     LoadCreationFactory,
     create_batch_loads,
+    create_weekly_loads,
     quick_create,
 )
 from machtms.core.factories.customer import (
@@ -31,6 +33,7 @@ __all__ = [
     'FakeAddressCreator',
     'FakeCarrierCreator',
     'FakeStopCreator',
+    'HOSComplianceError',
     # Load factories
     'LoadFactory',
     'LoadCreationFactory',
@@ -41,5 +44,6 @@ __all__ = [
     'StopFactory',
     # Prebuilt convenience functions
     'create_batch_loads',
+    'create_weekly_loads',
     'quick_create',
 ]

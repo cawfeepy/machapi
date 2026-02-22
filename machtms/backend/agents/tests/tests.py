@@ -25,13 +25,11 @@ class AgentChatViewTests(TestCase):
         self.factory = APIRequestFactory()
         self.view = AgentChatView.as_view()
 
-    @patch('machtms.backend.agents.views.get_lead_agent')
-    def test_chat_returns_200_with_valid_query(self, mock_get_agent):
+    @patch('machtms.backend.agents.views.lead_team')
+    def test_chat_returns_200_with_valid_query(self, mock_lead_team):
         mock_result = MagicMock()
         mock_result.content = "Here is the information you requested."
-        mock_agent = MagicMock()
-        mock_agent.run.return_value = mock_result
-        mock_get_agent.return_value = mock_agent
+        mock_lead_team.run.return_value = mock_result
 
         request = self.factory.post(
             '/api/agents/chat/',
@@ -49,13 +47,11 @@ class AgentChatViewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('error', response.data)
 
-    @patch('machtms.backend.agents.views.get_lead_agent')
-    def test_chat_response_contains_content(self, mock_get_agent):
+    @patch('machtms.backend.agents.views.lead_team')
+    def test_chat_response_contains_content(self, mock_lead_team):
         mock_result = MagicMock()
         mock_result.content = "We have 5 active loads."
-        mock_agent = MagicMock()
-        mock_agent.run.return_value = mock_result
-        mock_get_agent.return_value = mock_agent
+        mock_lead_team.run.return_value = mock_result
 
         request = self.factory.post(
             '/api/agents/chat/',
@@ -85,13 +81,18 @@ class AgentStreamViewTests(TestCase):
         self.factory = APIRequestFactory()
         self.view = AgentStreamView.as_view()
 
-    @patch('machtms.backend.agents.views.get_lead_agent')
-    def test_stream_returns_200_with_sse_content_type(self, mock_get_agent):
-        mock_event = MagicMock()
-        mock_event.content = "chunk"
-        mock_agent = MagicMock()
-        mock_agent.run.return_value = iter([mock_event])
-        mock_get_agent.return_value = mock_agent
+    def _make_stream_event(self, content, event_type='TeamRunContent'):
+        """Helper to create a mock stream event matching Agno's format."""
+        event = MagicMock()
+        event.event = event_type
+        event.content = content
+        return event
+
+    @patch('machtms.backend.agents.views.lead_team')
+    def test_stream_returns_200_with_sse_content_type(self, mock_lead_team):
+        mock_lead_team.run.return_value = iter([
+            self._make_stream_event("chunk"),
+        ])
 
         request = self.factory.post(
             '/api/agents/stream/',
@@ -103,15 +104,12 @@ class AgentStreamViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/event-stream')
 
-    @patch('machtms.backend.agents.views.get_lead_agent')
-    def test_stream_returns_data_events(self, mock_get_agent):
-        mock_event1 = MagicMock()
-        mock_event1.content = "Hello"
-        mock_event2 = MagicMock()
-        mock_event2.content = " world"
-        mock_agent = MagicMock()
-        mock_agent.run.return_value = iter([mock_event1, mock_event2])
-        mock_get_agent.return_value = mock_agent
+    @patch('machtms.backend.agents.views.lead_team')
+    def test_stream_returns_data_events(self, mock_lead_team):
+        mock_lead_team.run.return_value = iter([
+            self._make_stream_event("Hello"),
+            self._make_stream_event(" world"),
+        ])
 
         request = self.factory.post(
             '/api/agents/stream/',
@@ -124,13 +122,11 @@ class AgentStreamViewTests(TestCase):
         # Should have data events in SSE format
         self.assertTrue(any(b'data: ' in chunk for chunk in chunks))
 
-    @patch('machtms.backend.agents.views.get_lead_agent')
-    def test_stream_ends_with_done(self, mock_get_agent):
-        mock_event = MagicMock()
-        mock_event.content = "response"
-        mock_agent = MagicMock()
-        mock_agent.run.return_value = iter([mock_event])
-        mock_get_agent.return_value = mock_agent
+    @patch('machtms.backend.agents.views.lead_team')
+    def test_stream_ends_with_done(self, mock_lead_team):
+        mock_lead_team.run.return_value = iter([
+            self._make_stream_event("response"),
+        ])
 
         request = self.factory.post(
             '/api/agents/stream/',

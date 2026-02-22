@@ -6,7 +6,8 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from .utils import generate_truncated_hash, s3
+from .utils import generate_truncated_hash
+from machtms.core.utils import s3_utils as s3
 
 from djangorestframework_camel_case.parser import CamelCaseJSONParser
 from djangorestframework_camel_case.render import CamelCaseJSONRenderer

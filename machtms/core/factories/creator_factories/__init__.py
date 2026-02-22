@@ -14,6 +14,7 @@ from machtms.core.factories.creator_factories.fake_address_creator import (
 )
 from machtms.core.factories.creator_factories.fake_carrier_creator import (
     FakeCarrierCreator,
+    HOSComplianceError,
 )
 from machtms.core.factories.creator_factories.fake_stop_creator import (
     FakeStopCreator,
@@ -24,6 +25,7 @@ from machtms.core.factories.creator_factories.load_creation import (
 )
 from machtms.core.factories.creator_factories.prebuilt import (
     create_batch_loads,
+    create_weekly_loads,
     quick_create,
 )
 
@@ -31,8 +33,10 @@ __all__ = [
     "FakeAddressCreator",
     "FakeCarrierCreator",
     "FakeStopCreator",
+    "HOSComplianceError",
     "LoadCreationFactory",
     "LoadCreationResult",
     "create_batch_loads",
+    "create_weekly_loads",
     "quick_create",
 ]

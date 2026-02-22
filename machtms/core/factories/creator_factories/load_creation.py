@@ -18,7 +18,7 @@ Example usage:
 """
 
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, List, Optional, Protocol, Tuple, TypedDict
 
 from django.db import transaction
@@ -207,7 +207,9 @@ class LoadCreationFactory:
         else:
             return random.choice(self.MIDDLE_STOP_ACTIONS)
 
-    def create_stops(self, leg: Leg) -> List[Stop]:
+    def create_stops(
+        self, leg: Leg, base_date: Optional[datetime] = None
+    ) -> List[Stop]:
         """
         Create stops for the given leg.
 
@@ -219,11 +221,13 @@ class LoadCreationFactory:
         - Last stop: 'LU' (Live Unload) or 'LD' (Drop Loaded)
 
         Each stop gets:
-        - start_range: now + 1-7 days (random offset)
+        - start_range: base_date + 4h per stop index
         - end_range: start_range + 2 hours
 
         Args:
             leg: Leg instance to associate stops with
+            base_date: Optional aware datetime to use as the starting point for
+                      stop times. If None, uses now + random 1-7 day offset.
 
         Returns:
             List[Stop]: List of saved Stop instances ordered by stop_number
@@ -232,8 +236,9 @@ class LoadCreationFactory:
         total_stops = len(address_tuple)
 
         stops: List[Stop] = []
-        random_days_offset = random.randint(1, 7)
-        base_date = timezone.now() + timedelta(days=random_days_offset)
+        if base_date is None:
+            random_days_offset = random.randint(1, 7)
+            base_date = timezone.now() + timedelta(days=random_days_offset)
 
         for stop_index, address in enumerate(address_tuple):
             stop_number = stop_index + 1
@@ -255,20 +260,33 @@ class LoadCreationFactory:
 
         return stops
 
-    def assign_carrier_driver(self, leg: Leg) -> ShipmentAssignment:
+    def assign_carrier_driver(
+        self, leg: Leg, pickup_datetime: Optional[datetime] = None
+    ) -> ShipmentAssignment:
         """
         Create a shipment assignment for the given leg.
 
         Gets a carrier/driver pair from the carrier_factory and creates
-        a ShipmentAssignment linking them to the leg.
+        a ShipmentAssignment linking them to the leg. When pickup_datetime
+        is provided and the carrier_factory supports HOS compliance,
+        uses get_compliant_carrier_driver_pair instead.
 
         Args:
             leg: Leg instance to assign carrier/driver to
+            pickup_datetime: Optional datetime used for HOS compliance checking.
 
         Returns:
             ShipmentAssignment: Saved ShipmentAssignment instance
         """
-        carrier, driver = self.carrier_factory.get_carrier_driver_pair()
+        if (
+            pickup_datetime is not None
+            and getattr(self.carrier_factory, "enforce_hos", False)
+        ):
+            carrier, driver = self.carrier_factory.get_compliant_carrier_driver_pair(
+                pickup_datetime
+            )
+        else:
+            carrier, driver = self.carrier_factory.get_carrier_driver_pair()
 
         return ShipmentAssignmentFactory.create(
             carrier=carrier,
@@ -277,7 +295,9 @@ class LoadCreationFactory:
         )
 
     @transaction.atomic
-    def create_complete_load(self) -> LoadCreationResult:
+    def create_complete_load(
+        self, base_date: Optional[datetime] = None
+    ) -> LoadCreationResult:
         """
         Orchestrate the complete load creation workflow.
 
@@ -293,6 +313,10 @@ class LoadCreationFactory:
 
         The entire operation is wrapped in transaction.atomic() to ensure
         all-or-nothing behavior - if any step fails, all changes are rolled back.
+
+        Args:
+            base_date: Optional aware datetime to use as the starting point for
+                      stop times. If None, uses now + random 1-7 day offset.
 
         Returns:
             LoadCreationResult: Dictionary containing all created objects with keys:
@@ -324,8 +348,8 @@ class LoadCreationFactory:
 
         if self.create_legs:
             leg = self.create_leg(load)
-            stops = self.create_stops(leg)
-            assignment = self.assign_carrier_driver(leg)
+            stops = self.create_stops(leg, base_date=base_date)
+            assignment = self.assign_carrier_driver(leg, pickup_datetime=base_date)
         else:
             leg = None
             stops = []

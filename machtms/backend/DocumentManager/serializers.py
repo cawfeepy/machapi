@@ -6,7 +6,8 @@ from drf_spectacular.utils import extend_schema_field
 from machtms.core.base.serializers import HashSerializer, TMSBaseSerializer, RelatedFieldAlternative
 from machtms.backend.loads.serializers import LoadSerializer
 from machtms.backend.loads.models import Load
-from .utils import generate_truncated_hash, s3
+from .utils import generate_truncated_hash
+from machtms.core.utils import s3_utils as s3
 from rest_framework import serializers
 from rest_framework.serializers import CharField, PrimaryKeyRelatedField, Serializer
 from . import models

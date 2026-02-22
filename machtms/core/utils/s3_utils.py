@@ -1,6 +1,4 @@
 import boto3
-import io
-from PIL import Image
 import os
 from io import BytesIO
 from django.conf import settings
@@ -54,5 +52,3 @@ def create_object_key(object_key):
     if settings.DEBUG:
         return os.path.join("debug", object_key)
     return object_key
-
-
