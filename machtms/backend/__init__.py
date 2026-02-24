@@ -61,6 +61,15 @@ from machtms.backend.DocumentManager import (
     UploadLog,
 )
 
+# RateConParser models
+from machtms.backend.RateConParser import (
+    SessionStatus,
+    DocumentStatus,
+    ParsingSession,
+    RateConDocument,
+    ParsedRateCon,
+)
+
 # GmailAPI models
 from machtms.backend.GmailAPI import (
     GoogleCredentials,
@@ -110,6 +119,12 @@ __all__ = [
     'PostShipmentDocument',
     'SessionUploadLog',
     'UploadLog',
+    # RateConParser
+    'SessionStatus',
+    'DocumentStatus',
+    'ParsingSession',
+    'RateConDocument',
+    'ParsedRateCon',
     # GmailAPI
     'GoogleCredentials',
     'GmailBillingConfig',

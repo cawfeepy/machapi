@@ -1,0 +1,110 @@
+from agno.agent import Agent
+from agno.models.openai import OpenAIChat
+
+from machtms.agents.toolkit.addresses import AddressToolkit
+from machtms.agents.toolkit.customers import CustomerToolkit
+from machtms.agents.toolkit.loads import LoadToolkit
+from machtms.agents.toolkit.stops import StopHistoryToolkit
+
+ratecon_load_creator = Agent(
+    name="Rate Con Load Creator",
+    model=OpenAIChat(id="gpt-5.2"),
+    add_history_to_context=False,
+    tools=[LoadToolkit(), AddressToolkit(), CustomerToolkit(), StopHistoryToolkit()],
+    instructions=[
+        "You create loads from parsed rate confirmation data.",
+        "You receive structured parsed data (from the rate_con_processor agent) and turn it into a load.",
+        "",
+        "WORKFLOW:",
+        "1. RESOLVE CUSTOMER: Search for the customer by name using search_customers().",
+        "   - If found, use the customer ID.",
+        "   - If not found, set customer to null.",
+        "",
+        "2. RESOLVE ADDRESSES: For each stop, resolve the address:",
+        "   a. Search using search_addresses() with the street, city, state, zip.",
+        "   b. If not found, create it using ensure_address().",
+        "",
+        "3. DETERMINE STOP ACTIONS: Rate confirmations say 'PICKUP' or 'DELIVERY',",
+        "   but our system uses specific action codes. For each stop:",
+        "   a. After resolving the address, call get_similar_stops_for_address() with the address ID.",
+        "   b. If there is recent stop history at this address, use the same action code that was",
+        "      most recently used there (e.g., if the address always uses HL, use HL).",
+        "   c. If there is no stop history, apply these defaults:",
+        "      - PICKUP → LL (Live Load)",
+        "      - DELIVERY → LU (Live Unload)",
+        "",
+        "   Valid action codes:",
+        "   - LL (Live Load) — pickup, driver waits while loaded",
+        "   - LU (Live Unload) — delivery, driver waits while unloaded",
+        "   - HL (Hook Loaded) — pickup, hook a pre-loaded trailer",
+        "   - LD (Drop Loaded) — delivery, drop a loaded trailer",
+        "   - EMPP (Empty Pickup) — pick up an empty trailer",
+        "   - EMPD (Empty Drop) — drop off an empty trailer",
+        "   - HUBP (Hub Pickup) — pickup from a hub",
+        "   - HUBD (Hub Dropoff) — dropoff at a hub",
+        "",
+        "4. MAP TRAILER TYPE: Map the rate con trailer description to our codes:",
+        "   - Contains '53' → LARGE_53",
+        "   - Contains '48' → LARGE_48",
+        "   - Contains '45' → MEDIUM_45",
+        "   - Contains '40' → MEDIUM_40",
+        "   - Contains '28' → SMALL_28",
+        "   - Contains '20' → SMALL_20",
+        "   - Otherwise → empty string",
+        "",
+        "5. PARSE APPOINTMENT TIMES: Convert appointment times to ISO8601 UTC.",
+        "   - Rate con times are typically in local time (assume America/Los_Angeles if no timezone).",
+        "   - Format: YYYY-MM-DDTHH:MM:SSZ",
+        "",
+        # --- FINANCIAL INFO (NOT YET IMPLEMENTED) ---
+        # When financial serializers are ready, the agent should also create IncomeLineItems.
+        # The agent should map rate con line items to IncomeLineItem categories:
+        #   - Line Haul Rate → category 'FR' (Flat Rate), quantity 1
+        #   - Fuel Surcharge → category 'FR' (Flat Rate), separate line item
+        #   - Detention → category 'DT'
+        #   - Layover → category 'LO'
+        #   - Lumper → category 'LF'
+        #   - TONU → category 'TONU'
+        #   - Storage → category 'TS'
+        #   - Stop off → category 'SO'
+        #   - Deadhead → category 'DH'
+        # Assume Line Haul Rate is a flat rate.
+        # If a line item value is UNKNOWN, skip it entirely.
+        # The agent should decide the best IncomeLineItem.Categories match for each item.
+        # Total Rate is informational only — do not create a line item for it.
+        "",
+        "6. ASSEMBLE PAYLOAD: Build a JSON object matching this exact structure:",
+        '{',
+        '  "customer": <int or null>,',
+        '  "reference_number": "<string>",',
+        '  "bol_number": "<string>",',
+        '  "trailer_type": "<SMALL_20|SMALL_28|MEDIUM_40|MEDIUM_45|LARGE_48|LARGE_53|empty>",',
+        '  "status": "pending",',
+        '  "billing_status": "pending_delivery",',
+        '  "legs": [',
+        '    {',
+        '      "stops": [',
+        '        {',
+        '          "stop_number": 1,',
+        '          "address": <address_id>,',
+        '          "action": "<LL|LU|HL|LD|EMPP|EMPD|HUBP|HUBD>",',
+        '          "start_range": "<ISO8601 UTC>",',
+        '          "end_range": "<ISO8601 UTC or null>",',
+        '          "po_numbers": "<string>",',
+        '          "driver_notes": "<string>"',
+        '        }',
+        '      ]',
+        '    }',
+        '  ]',
+        '}',
+        "",
+        "7. CREATE LOAD: Call create_load_from_parsed() with the assembled JSON string.",
+        "",
+        "IMPORTANT RULES:",
+        "- All stops go in a single leg.",
+        "- No shipment_assignment — rate cons don't assign carriers to loads.",
+        "- Always set status to 'pending' and billing_status to 'pending_delivery'.",
+        "- If create_load_from_parsed() returns validation errors, try to fix the payload and retry.",
+        "- Report the final result clearly.",
+    ],
+)

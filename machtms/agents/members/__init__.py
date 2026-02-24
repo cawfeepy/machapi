@@ -7,6 +7,8 @@ from .load_data_agent import load_data_agent
 from .carrier_assignment_agent import carrier_assignment_agent
 from .load_creator import load_creation_team
 from .lookup_agent import lookup_agent
+from .rate_con_processor import rate_con_processor
+from .ratecon_load_creator import ratecon_load_creator
 
 __all__ = [
     'dispatcher',
@@ -18,4 +20,6 @@ __all__ = [
     'carrier_assignment_agent',
     'load_creation_team',
     'lookup_agent',
+    'rate_con_processor',
+    'ratecon_load_creator',
 ]

@@ -111,6 +111,7 @@ class LoadToolkit(Toolkit):
         self.register(self.get_todays_loads)
         self.register(self.search_loads)
         self.register(self.create_load)
+        self.register(self.create_load_from_parsed)
 
     @staticmethod
     def _format_load(load, display_tz, include_date=False):
@@ -380,3 +381,44 @@ class LoadToolkit(Toolkit):
         if loaded:
             return f"Load created successfully!\n\n{self._format_load(loaded, pt, include_date=True)}"
         return f"Load created successfully (ID: {load.pk}, Reference: {load.reference_number})."
+
+    def create_load_from_parsed(self, run_context: RunContext, payload_json: str) -> str:
+        """Create a load from a RateConLoadPayload JSON.
+
+        Accepts a JSON string matching the RateConLoadPayload Pydantic model,
+        which mirrors the LoadSerializer structure. The ratecon_load_creator agent
+        is responsible for resolving addresses, customers, stop actions, etc.
+        before calling this method.
+
+        Args:
+            payload_json: JSON string matching RateConLoadPayload structure:
+                {
+                    "customer": <int or null>,
+                    "reference_number": "",
+                    "bol_number": "",
+                    "trailer_type": "LARGE_53",
+                    "status": "pending",
+                    "billing_status": "pending_delivery",
+                    "legs": [{
+                        "stops": [{
+                            "stop_number": 1,
+                            "address": <int>,
+                            "action": "LL",
+                            "start_range": "2025-01-01T08:00:00Z",
+                            "po_numbers": "",
+                            "driver_notes": ""
+                        }]
+                    }]
+                }
+
+        Returns:
+            Confirmation with created load details, or validation errors.
+        """
+        from machtms.agents.models.ratecon_payload import RateConLoadPayload
+
+        try:
+            payload = RateConLoadPayload.model_validate_json(payload_json)
+        except Exception as e:
+            return f"Error: Invalid payload — {e}"
+
+        return self.create_load(run_context, payload.model_dump_json())

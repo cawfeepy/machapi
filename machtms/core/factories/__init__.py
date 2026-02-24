@@ -17,6 +17,11 @@ from machtms.core.factories.customer import (
 )
 from machtms.core.factories.leg import LegFactory, ShipmentAssignmentFactory
 from machtms.core.factories.loads import LoadFactory
+from machtms.core.factories.ratecon import (
+    ParsingSessionFactory,
+    RateConDocumentFactory,
+    ParsedRateConFactory,
+)
 from machtms.core.factories.routes import StopFactory
 
 __all__ = [
@@ -40,6 +45,10 @@ __all__ = [
     # Leg factories
     'LegFactory',
     'ShipmentAssignmentFactory',
+    # RateConParser factories
+    'ParsingSessionFactory',
+    'RateConDocumentFactory',
+    'ParsedRateConFactory',
     # Route factories
     'StopFactory',
     # Prebuilt convenience functions

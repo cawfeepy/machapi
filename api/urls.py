@@ -31,6 +31,7 @@ urlpatterns = [
         # TODO: Uncomment when financials module is implemented
         # path('', include('machtms.backend.financials.urls')),
         path('', include('machtms.backend.DocumentManager.urls')),
+        path('', include('machtms.backend.RateConParser.urls')),
         path('', include('machtms.backend.GmailAPI.urls')),
         path('', include('machtms.backend.agents.urls')),
     ])),

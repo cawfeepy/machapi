@@ -4,10 +4,20 @@ from .load_payload import (
     ShipmentAssignmentPayload,
     StopPayload,
 )
+from .ratecon_payload import (
+    ParsedRateConData,
+    ParsedStop,
+    ParsedFinancialInfo,
+    RateConLoadPayload,
+)
 
 __all__ = [
     'LoadCreationPayload',
     'LegPayload',
     'ShipmentAssignmentPayload',
     'StopPayload',
+    'ParsedRateConData',
+    'ParsedStop',
+    'ParsedFinancialInfo',
+    'RateConLoadPayload',
 ]
