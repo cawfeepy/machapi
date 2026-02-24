@@ -3,13 +3,21 @@ from typing import Optional
 
 
 class ParsedStop(BaseModel):
-    stop_type: str  # "PICKUP" or "DELIVERY"
-    address: str = ""
+    stop_type: str = Field(
+        default="PICKUP",
+        description=(
+            "PICKUP or DELIVERY. Used to infer the action code for load creation. "
+            "First stop: default Live Load (LL); check stop history for address if found. "
+            "Middle stops (3+ stops): default Live Load (LL); check stop history. "
+            "Last stop: default Live Unload (LU); check stop history."
+        ),
+    )
+    street_address: str = ""
     city: str = ""
     state: str = ""
     zip_code: str = ""
     appointment: str = ""
-    po_numbers: str = ""
+    po_numbers: list[str] = Field(default_factory=list)
     notes: str = ""
 
 
@@ -23,12 +31,21 @@ class ParsedRateConData(BaseModel):
     classification: str = "PASS"  # PASS or FAIL
     classification_reason: str = ""
     reference_number: str = "UNKNOWN"
-    bol_number: str = "UNKNOWN"
+    bol_number: str = Field(
+        default="UNKNOWN",
+        description=(
+            "Can be labeled PU#, BOL#, or BM. "
+            "Reference number for the full trip, NOT a PO number."
+        ),
+    )
     customer_name: str = "UNKNOWN"
     trailer_type: str = "UNKNOWN"
-    financial: ParsedFinancialInfo = ParsedFinancialInfo()
+    # financial: ParsedFinancialInfo = ParsedFinancialInfo()  # Not used by rate con load creator yet
     stops: list[ParsedStop] = []
-    invoice_email: str = "UNKNOWN"
+    invoice_email_standard_pay: str = "UNKNOWN"
+    invoice_email_quick_pay: str = "UNKNOWN"
+    celery_task_id: str = ""
+    ratecon_document_id: Optional[int] = None
 
 
 class RateConLoadPayload(BaseModel):
@@ -61,3 +78,5 @@ class RateConLoadPayload(BaseModel):
     status: str = "pending"
     billing_status: str = "pending_delivery"
     legs: list[LegPayload] = Field(default_factory=list)
+    celery_task_id: str = ""
+    ratecon_document_id: Optional[int] = None

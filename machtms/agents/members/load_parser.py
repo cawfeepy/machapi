@@ -17,7 +17,7 @@ load_parser = Agent(
         "LOAD section: Extract:",
         "  - Customer name",
         "  - Reference number (if mentioned)",
-        "  - BOL number (if mentioned)",
+        "  - BOL number (it could be BOL#, PU#, BM)",
         "  - Trailer type/size (if mentioned)",
         "",
         "ASSIGNMENT section: Extract:",

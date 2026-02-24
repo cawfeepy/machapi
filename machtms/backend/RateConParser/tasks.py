@@ -172,11 +172,34 @@ def process_single_document(document_id: int):
 
         if parsed['classification'] == 'PASS':
             doc.status = DocumentStatus.PARSED
+            doc.processed_at = timezone.now()
+            doc.save(update_fields=['status', 'processed_at', 'updated_at'])
+
+            # Trigger load creation from parsed rate con data
+            try:
+                from machtms.agents.members.ratecon_load_creator import ratecon_load_creator
+
+                creator_prompt = (
+                    f"Create a load from this parsed rate confirmation data:\n\n"
+                    f"{response_text}\n\n"
+                    f"Metadata:\n"
+                    f"  celery_task_id: {doc.celery_task_id}\n"
+                    f"  ratecon_document_id: {doc.pk}"
+                )
+
+                ratecon_load_creator.run(
+                    creator_prompt,
+                    session_id=str(uuid.uuid4()),
+                    dependencies={"organization": organization},
+                )
+            except Exception as load_err:
+                logger.exception(
+                    f"Load creation failed for document {document_id}: {load_err}"
+                )
         else:
             doc.status = DocumentStatus.MISCLASSIFIED
-
-        doc.processed_at = timezone.now()
-        doc.save(update_fields=['status', 'processed_at', 'updated_at'])
+            doc.processed_at = timezone.now()
+            doc.save(update_fields=['status', 'processed_at', 'updated_at'])
 
     except Exception as e:
         logger.exception(f"Error processing document {document_id}: {e}")

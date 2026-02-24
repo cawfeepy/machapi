@@ -112,6 +112,7 @@ class LoadToolkit(Toolkit):
         self.register(self.search_loads)
         self.register(self.create_load)
         self.register(self.create_load_from_parsed)
+        self.register(self.update_ratecon_document_status)
 
     @staticmethod
     def _format_load(load, display_tz, include_date=False):
@@ -421,4 +422,31 @@ class LoadToolkit(Toolkit):
         except Exception as e:
             return f"Error: Invalid payload — {e}"
 
-        return self.create_load(run_context, payload.model_dump_json())
+        stripped = payload.model_dump(exclude={'celery_task_id', 'ratecon_document_id'})
+        return self.create_load(run_context, json.dumps(stripped))
+
+    def update_ratecon_document_status(
+        self,
+        run_context: RunContext,
+        ratecon_document_id: int,
+        load_id: int,
+    ) -> str:
+        """Link a created load to its source RateConDocument by updating the ParsedRateCon record.
+
+        Args:
+            ratecon_document_id: The RateConDocument ID whose ParsedRateCon should be updated.
+            load_id: The Load ID to associate with the parsed content.
+
+        Returns:
+            Confirmation message or error string.
+        """
+        from machtms.backend.RateConParser.models import ParsedRateCon
+
+        try:
+            parsed = ParsedRateCon.objects.get(document_id=ratecon_document_id)
+        except ParsedRateCon.DoesNotExist:
+            return f"Error: No ParsedRateCon found for document ID {ratecon_document_id}."
+
+        parsed.load_id = load_id
+        parsed.save(update_fields=['load_id'])
+        return f"Successfully linked load {load_id} to RateConDocument {ratecon_document_id}."

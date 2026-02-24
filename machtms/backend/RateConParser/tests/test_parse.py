@@ -73,7 +73,7 @@ Total Rate: $2,650.00
 --- STOPS ---
 Stop 1:
   Type: PICKUP
-  Address: 123 Warehouse Blvd
+  Street Address: 123 Warehouse Blvd
   City: Los Angeles
   State: CA
   Zip: 90001
@@ -83,7 +83,7 @@ Stop 1:
 
 Stop 2:
   Type: DELIVERY
-  Address: 456 Distribution Way
+  Street Address: 456 Distribution Way
   City: Portland
   State: OR
   Zip: 97201
@@ -97,7 +97,8 @@ MC Number: MC-123456
 
 --- INVOICING ---
 Payment Terms: Net 30
-Invoice Email: billing@acme.com
+Invoice Email (Standard Pay): billing@acme.com
+Invoice Email (Quick Pay): quickpay@acme.com
 """
 
 SAMPLE_AGENT_RESPONSE_FAIL = """
@@ -364,7 +365,8 @@ class ProcessDocumentTaskTests(TestCase):
 
     @patch('machtms.core.utils.s3_utils.download_from_buffer')
     @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
-    def test_process_document_pass(self, mock_agent, mock_download):
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_process_document_pass(self, mock_load_creator, mock_agent, mock_download):
         doc = self._create_pending_doc()
 
         # Mock S3 download
@@ -375,6 +377,8 @@ class ProcessDocumentTaskTests(TestCase):
         mock_response = MagicMock()
         mock_response.content = SAMPLE_AGENT_RESPONSE_PASS
         mock_agent.run.return_value = mock_response
+
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
 
         process_single_document(doc.pk)
 
@@ -434,7 +438,8 @@ class ProcessDocumentTaskTests(TestCase):
 
     @patch('machtms.core.utils.s3_utils.download_from_buffer')
     @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
-    def test_session_status_updates_after_processing(self, mock_agent, mock_download):
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_session_status_updates_after_processing(self, mock_load_creator, mock_agent, mock_download):
         """Session recomputes its status after document processing."""
         session = ParsingSessionFactory(organization=self.organization)
         doc = RateConDocumentFactory(
@@ -449,6 +454,8 @@ class ProcessDocumentTaskTests(TestCase):
         mock_response = MagicMock()
         mock_response.content = SAMPLE_AGENT_RESPONSE_PASS
         mock_agent.run.return_value = mock_response
+
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
 
         process_single_document(doc.pk)
 
