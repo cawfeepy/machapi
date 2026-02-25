@@ -28,9 +28,9 @@ from machtms.backend.RateConParser.models import (
     SessionStatus,
     DocumentStatus,
 )
+from machtms.agents.models.ratecon_payload import ParsedRateConData, ParsedStop
 from machtms.backend.RateConParser.tasks import (
     extract_text_from_pdf,
-    parse_agent_response,
     process_single_document,
     cleanup_stale_uploads,
 )
@@ -54,57 +54,43 @@ def _create_pdf_buffer(text_content: str = "Sample rate confirmation text") -> B
     return buffer
 
 
-SAMPLE_AGENT_RESPONSE_PASS = """
-CLASSIFICATION: PASS
-REASON:
+SAMPLE_PARSED_DATA_PASS = ParsedRateConData(
+    classification="PASS",
+    classification_reason="",
+    reference_number="RC-12345",
+    bol_number="BOL-67890",
+    customer_name="Acme Shipping Co",
+    trailer_type="53' Dry Van",
+    stops=[
+        ParsedStop(
+            stop_type="PICKUP",
+            street_address="123 Warehouse Blvd",
+            city="Los Angeles",
+            state="CA",
+            zip_code="90001",
+            appointment="02/25/2026 08:00",
+            po_numbers=["PO-111"],
+            notes="Dock door #5",
+        ),
+        ParsedStop(
+            stop_type="DELIVERY",
+            street_address="456 Distribution Way",
+            city="Portland",
+            state="OR",
+            zip_code="97201",
+            appointment="02/27/2026 14:00",
+            po_numbers=[],
+            notes="",
+        ),
+    ],
+    invoice_email_standard_pay="billing@acme.com",
+    invoice_email_quick_pay="quickpay@acme.com",
+)
 
---- BASIC INFO ---
-Reference Number: RC-12345
-BOL Number: BOL-67890
-Customer Name: Acme Shipping Co
-Trailer Type: 53' Dry Van
-
---- FINANCIAL INFO ---
-Line Haul Rate: $2,500.00
-Fuel Surcharge: $150.00
-Accessorials: NONE
-Total Rate: $2,650.00
-
---- STOPS ---
-Stop 1:
-  Type: PICKUP
-  Street Address: 123 Warehouse Blvd
-  City: Los Angeles
-  State: CA
-  Zip: 90001
-  Appointment: 02/25/2026 08:00
-  PO Numbers: PO-111
-  Notes: Dock door #5
-
-Stop 2:
-  Type: DELIVERY
-  Street Address: 456 Distribution Way
-  City: Portland
-  State: OR
-  Zip: 97201
-  Appointment: 02/27/2026 14:00
-  PO Numbers: NONE
-  Notes: NONE
-
---- CARRIER INFO ---
-Carrier Name: Swift Logistics
-MC Number: MC-123456
-
---- INVOICING ---
-Payment Terms: Net 30
-Invoice Email (Standard Pay): billing@acme.com
-Invoice Email (Quick Pay): quickpay@acme.com
-"""
-
-SAMPLE_AGENT_RESPONSE_FAIL = """
-CLASSIFICATION: FAIL
-REASON: This document appears to be an invoice, not a rate confirmation. It lacks pickup/delivery information and carrier details.
-"""
+SAMPLE_PARSED_DATA_FAIL = ParsedRateConData(
+    classification="FAIL",
+    classification_reason="This document appears to be an invoice, not a rate confirmation. It lacks pickup/delivery information and carrier details.",
+)
 
 
 # ============================================================================
@@ -297,48 +283,6 @@ class TextExtractionTests(TestCase):
 
 
 # ============================================================================
-# Agent Response Parsing Tests
-# ============================================================================
-
-@override_settings(DEBUG=False)
-class AgentResponseParsingTests(TestCase):
-    """Tests for parse_agent_response utility."""
-
-    def test_parse_pass_response(self):
-        result = parse_agent_response(SAMPLE_AGENT_RESPONSE_PASS)
-        self.assertEqual(result['classification'], 'PASS')
-        self.assertEqual(result['classification_reason'], '')
-        self.assertIn('raw_text', result)
-        self.assertIsInstance(result['structured_data'], dict)
-
-    def test_parse_fail_response(self):
-        result = parse_agent_response(SAMPLE_AGENT_RESPONSE_FAIL)
-        self.assertEqual(result['classification'], 'FAIL')
-        self.assertIn('invoice', result['classification_reason'].lower())
-
-    def test_parse_extracts_reference_number(self):
-        result = parse_agent_response(SAMPLE_AGENT_RESPONSE_PASS)
-        data = result['structured_data']
-        self.assertEqual(data.get('Reference Number'), 'RC-12345')
-
-    def test_parse_extracts_stops(self):
-        result = parse_agent_response(SAMPLE_AGENT_RESPONSE_PASS)
-        data = result['structured_data']
-        self.assertIn('stops', data)
-        self.assertEqual(len(data['stops']), 2)
-
-    def test_parse_extracts_carrier_info(self):
-        result = parse_agent_response(SAMPLE_AGENT_RESPONSE_PASS)
-        data = result['structured_data']
-        self.assertEqual(data.get('Carrier Name'), 'Swift Logistics')
-
-    def test_parse_empty_response(self):
-        result = parse_agent_response("")
-        self.assertEqual(result['classification'], 'PASS')
-        self.assertEqual(result['structured_data'], {})
-
-
-# ============================================================================
 # Process Document Task Tests
 # ============================================================================
 
@@ -373,9 +317,9 @@ class ProcessDocumentTaskTests(TestCase):
         pdf_buffer = _create_pdf_buffer("Rate Confirmation RC-12345")
         mock_download.return_value = pdf_buffer
 
-        # Mock agent response
+        # Mock agent response (structured output)
         mock_response = MagicMock()
-        mock_response.content = SAMPLE_AGENT_RESPONSE_PASS
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
         mock_agent.run.return_value = mock_response
 
         mock_load_creator.run.return_value = MagicMock(content="Load created")
@@ -397,7 +341,7 @@ class ProcessDocumentTaskTests(TestCase):
         mock_download.return_value = pdf_buffer
 
         mock_response = MagicMock()
-        mock_response.content = SAMPLE_AGENT_RESPONSE_FAIL
+        mock_response.content = SAMPLE_PARSED_DATA_FAIL
         mock_agent.run.return_value = mock_response
 
         process_single_document(doc.pk)
@@ -452,7 +396,7 @@ class ProcessDocumentTaskTests(TestCase):
         mock_download.return_value = pdf_buffer
 
         mock_response = MagicMock()
-        mock_response.content = SAMPLE_AGENT_RESPONSE_PASS
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
         mock_agent.run.return_value = mock_response
 
         mock_load_creator.run.return_value = MagicMock(content="Load created")
@@ -556,11 +500,8 @@ class AgentIntegrationTests(TestCase):
             session_id=str(uuid.uuid4()),
         )
 
-        response_text = response.content
-        self.assertIn("CLASSIFICATION", response_text.upper())
-        # Should classify as PASS since it has clear rate con characteristics
-        parsed = parse_agent_response(response_text)
-        self.assertIn(parsed['classification'], ['PASS', 'FAIL'],
+        parsed_data = response.content  # ParsedRateConData instance
+        self.assertIn(parsed_data.classification, ['PASS', 'FAIL'],
                        "Classification must be PASS or FAIL")
 
     def test_agent_rejects_non_rate_con(self):
@@ -578,9 +519,8 @@ class AgentIntegrationTests(TestCase):
             session_id=str(uuid.uuid4()),
         )
 
-        response_text = response.content
-        parsed = parse_agent_response(response_text)
-        self.assertEqual(parsed['classification'], 'FAIL')
+        parsed_data = response.content  # ParsedRateConData instance
+        self.assertEqual(parsed_data.classification, 'FAIL')
 
 
 # ============================================================================
@@ -653,37 +593,32 @@ class RealPDFIntegrationTests(TestCase):
                 session_id=str(uuid.uuid4()),
             )
 
-            response_text = response.content
-            print(f"\n--- Agent Raw Response ---")
-            print(response_text)
-
-            parsed = parse_agent_response(response_text)
+            parsed_data = response.content  # ParsedRateConData instance
+            print(f"\n--- Agent Structured Output ---")
+            print(parsed_data.model_dump_json(indent=2))
 
             print(f"\n--- Parsed Result ---")
-            print(f"Classification: {parsed['classification']}")
-            if parsed['classification_reason']:
-                print(f"Reason: {parsed['classification_reason']}")
-            print(f"Structured Data Keys: {list(parsed['structured_data'].keys())}")
+            print(f"Classification: {parsed_data.classification}")
+            if parsed_data.classification_reason:
+                print(f"Reason: {parsed_data.classification_reason}")
 
-            for key, value in parsed['structured_data'].items():
-                if key == 'stops':
-                    print(f"\nStops ({len(value)}):")
-                    for stop in value:
-                        print(f"  Stop {stop.get('stop_number', '?')}: {stop}")
-                else:
-                    print(f"  {key}: {value}")
+            if parsed_data.classification == 'PASS':
+                print(f"Reference: {parsed_data.reference_number}")
+                print(f"Customer: {parsed_data.customer_name}")
+                print(f"\nStops ({len(parsed_data.stops)}):")
+                for i, stop in enumerate(parsed_data.stops, 1):
+                    print(f"  Stop {i}: {stop.stop_type} @ {stop.street_address}, {stop.city}, {stop.state} {stop.zip_code}")
 
             # Basic assertions
-            self.assertIn(parsed['classification'], ['PASS', 'FAIL'])
-            if parsed['classification'] == 'PASS':
-                data = parsed['structured_data']
+            self.assertIn(parsed_data.classification, ['PASS', 'FAIL'])
+            if parsed_data.classification == 'PASS':
                 self.assertTrue(
-                    len(data) > 0,
-                    f"Expected structured data for {filename}"
+                    len(parsed_data.stops) > 0,
+                    f"Expected stops for {filename}"
                 )
 
     def test_full_pipeline_with_real_pdf(self):
-        """Test the complete pipeline: extract -> agent -> parse -> create record."""
+        """Test the complete pipeline: extract -> agent -> structured output -> create record."""
         from machtms.core.factories import ParsingSessionFactory, RateConDocumentFactory
         from machtms.agents.members.rate_con_processor import rate_con_processor
 
@@ -703,26 +638,25 @@ class RealPDFIntegrationTests(TestCase):
             status=DocumentStatus.PROCESSING,
         )
 
-        # Run agent
+        # Run agent (returns ParsedRateConData via output_schema)
         response = rate_con_processor.run(
             text,
             session_id=str(uuid.uuid4()),
         )
-        response_text = response.content
-        parsed = parse_agent_response(response_text)
+        parsed_data = response.content  # ParsedRateConData instance
 
         # Create ParsedRateCon record
         parsed_record = ParsedRateCon.objects.create(
             organization=session.organization,
             document=doc,
-            raw_text=parsed['raw_text'],
-            structured_data=parsed['structured_data'],
-            classification_passed=(parsed['classification'] == 'PASS'),
-            classification_reason=parsed['classification_reason'],
+            raw_text=parsed_data.model_dump_json(),
+            structured_data=parsed_data.model_dump(),
+            classification_passed=(parsed_data.classification == 'PASS'),
+            classification_reason=parsed_data.classification_reason,
         )
 
         # Update document status
-        if parsed['classification'] == 'PASS':
+        if parsed_data.classification == 'PASS':
             doc.status = DocumentStatus.PARSED
         else:
             doc.status = DocumentStatus.MISCLASSIFIED
@@ -792,19 +726,19 @@ class RateConToLoadEndToEndTests(TestCase):
             text,
             session_id=str(uuid.uuid4()),
         )
-        parsed_text = parse_response.content
+        parsed_data = parse_response.content  # ParsedRateConData instance
         print(f"\n--- rate_con_processor output ---")
-        print(parsed_text)
+        print(parsed_data.model_dump_json(indent=2))
 
-        parsed = parse_agent_response(parsed_text)
-        self.assertEqual(parsed['classification'], 'PASS',
+        self.assertEqual(parsed_data.classification, 'PASS',
                          f"Expected PASS classification for {filename}")
 
         # Step 3: Feed the parsed output to ratecon_load_creator
         loads_before = Load.objects.filter(organization=self.organization).count()
 
         creator_prompt = (
-            f"Create a load from this parsed rate confirmation data:\n\n{parsed_text}"
+            f"Create a load from this parsed rate confirmation data (JSON):\n\n"
+            f"{parsed_data.model_dump_json(indent=2)}"
         )
 
         creator_response = ratecon_load_creator.run(

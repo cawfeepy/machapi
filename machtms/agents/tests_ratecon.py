@@ -5,8 +5,9 @@ This module contains tests for:
 1. Pydantic model updates (ParsedStop, ParsedRateConData, RateConLoadPayload)
 2. StopHistoryToolkit get_action_code_frequency method
 3. Agent configuration (rate_con_processor, ratecon_load_creator)
-4. LoadToolkit update_ratecon_document_status and metadata stripping
-5. Celery task integration (load creator invocation)
+4. DocumentParsingToolkit (update_document_status, assign_load_to_parsed_ratecon)
+5. LoadToolkit metadata stripping (create_load_from_parsed)
+6. Celery task integration (dependencies passing)
 """
 import json
 import uuid
@@ -23,6 +24,7 @@ from machtms.agents.models.ratecon_payload import (
     ParsedRateConData,
     RateConLoadPayload,
 )
+from machtms.agents.toolkit.document_parsing import DocumentParsingToolkit
 from machtms.agents.toolkit.loads import LoadToolkit
 from machtms.agents.toolkit.stops import StopHistoryToolkit
 from machtms.backend.auth.models import Organization
@@ -42,12 +44,16 @@ from machtms.core.factories import (
 )
 
 
-def _make_run_context(organization):
+def _make_run_context(organization, celery_task_id="", ratecon_id=None):
     """Create a mock RunContext with the given organization in dependencies."""
     return RunContext(
         run_id="test-run",
         session_id="test-session",
-        dependencies={"organization": organization},
+        dependencies={
+            "organization": organization,
+            "celery_task_id": celery_task_id,
+            "ratecon_id": ratecon_id,
+        },
     )
 
 
@@ -63,51 +69,43 @@ def _create_pdf_buffer(text_content: str = "Sample rate confirmation text") -> B
     return buffer
 
 
-SAMPLE_AGENT_RESPONSE_PASS = """
-CLASSIFICATION: PASS
-REASON:
+SAMPLE_PARSED_DATA_PASS = ParsedRateConData(
+    classification="PASS",
+    classification_reason="",
+    reference_number="RC-12345",
+    bol_number="BOL-67890",
+    customer_name="Acme Shipping Co",
+    trailer_type="53' Dry Van",
+    stops=[
+        ParsedStop(
+            stop_type="PICKUP",
+            street_address="123 Warehouse Blvd",
+            city="Los Angeles",
+            state="CA",
+            zip_code="90001",
+            appointment="02/25/2026 08:00",
+            po_numbers=["PO-111"],
+            notes="Dock door #5",
+        ),
+        ParsedStop(
+            stop_type="DELIVERY",
+            street_address="456 Distribution Way",
+            city="Portland",
+            state="OR",
+            zip_code="97201",
+            appointment="02/27/2026 14:00",
+            po_numbers=[],
+            notes="",
+        ),
+    ],
+    invoice_email_standard_pay="billing@acme.com",
+    invoice_email_quick_pay="quickpay@acme.com",
+)
 
---- BASIC INFO ---
-Reference Number: RC-12345
-BOL Number: BOL-67890
-Customer Name: Acme Shipping Co
-Trailer Type: 53' Dry Van
-
---- FINANCIAL INFO ---
-Line Haul Rate: $2,500.00
-Fuel Surcharge: $150.00
-Total Rate: $2,650.00
-
---- STOPS ---
-Stop 1:
-  Type: PICKUP
-  Street Address: 123 Warehouse Blvd
-  City: Los Angeles
-  State: CA
-  Zip: 90001
-  Appointment: 02/25/2026 08:00
-  PO Numbers: PO-111
-  Notes: Dock door #5
-
-Stop 2:
-  Type: DELIVERY
-  Street Address: 456 Distribution Way
-  City: Portland
-  State: OR
-  Zip: 97201
-  Appointment: 02/27/2026 14:00
-  PO Numbers: NONE
-  Notes: NONE
-
---- INVOICING ---
-Invoice Email (Standard Pay): billing@acme.com
-Invoice Email (Quick Pay): quickpay@acme.com
-"""
-
-SAMPLE_AGENT_RESPONSE_FAIL = """
-CLASSIFICATION: FAIL
-REASON: This document appears to be an invoice, not a rate confirmation.
-"""
+SAMPLE_PARSED_DATA_FAIL = ParsedRateConData(
+    classification="FAIL",
+    classification_reason="This document appears to be an invoice, not a rate confirmation.",
+)
 
 
 # ============================================================================
@@ -336,19 +334,18 @@ class RateConProcessorConfigTests(TestCase):
 
     def setUp(self):
         from machtms.agents.members.rate_con_processor import rate_con_processor
-        self.instructions = "\n".join(rate_con_processor.instructions)
+        self.agent = rate_con_processor
 
-    def test_instructions_contain_street_address(self):
-        self.assertIn("Street Address:", self.instructions)
+    def test_has_output_schema(self):
+        self.assertEqual(self.agent.output_schema, ParsedRateConData)
 
-    def test_instructions_contain_comma_separated_po(self):
-        self.assertIn("comma-separated list of PO numbers", self.instructions)
+    def test_instructions_mention_classification(self):
+        instructions = "\n".join(self.agent.instructions)
+        self.assertIn("CLASSIFICATION", instructions)
 
-    def test_instructions_contain_standard_pay_email(self):
-        self.assertIn("Invoice Email (Standard Pay):", self.instructions)
-
-    def test_instructions_contain_quick_pay_email(self):
-        self.assertIn("Invoice Email (Quick Pay):", self.instructions)
+    def test_instructions_mention_extraction(self):
+        instructions = "\n".join(self.agent.instructions)
+        self.assertIn("EXTRACTION", instructions)
 
 
 # ============================================================================
@@ -370,23 +367,27 @@ class RateConLoadCreatorConfigTests(TestCase):
         toolkit_types = [type(t).__name__ for t in self.agent.tools]
         self.assertIn('StopHistoryToolkit', toolkit_types)
 
+    def test_has_document_parsing_toolkit(self):
+        toolkit_types = [type(t).__name__ for t in self.agent.tools]
+        self.assertIn('DocumentParsingToolkit', toolkit_types)
+
     def test_instructions_mention_get_action_code_frequency(self):
         self.assertIn("get_action_code_frequency()", self.instructions)
 
-    def test_instructions_mention_celery_task_id(self):
-        self.assertIn("celery_task_id", self.instructions)
+    def test_instructions_mention_assign_load(self):
+        self.assertIn("assign_load_to_parsed_ratecon()", self.instructions)
 
-    def test_instructions_mention_document_update(self):
-        self.assertIn("update_ratecon_document_status()", self.instructions)
+    def test_instructions_no_longer_mention_old_update_method(self):
+        self.assertNotIn("update_ratecon_document_status()", self.instructions)
 
 
 # ============================================================================
-# LoadToolkit RateCon Update Tests
+# DocumentParsingToolkit Tests
 # ============================================================================
 
 @override_settings(DEBUG=False)
-class LoadToolkitRateConUpdateTests(TestCase):
-    """Tests for LoadToolkit update_ratecon_document_status and metadata stripping."""
+class DocumentParsingToolkitTests(TestCase):
+    """Tests for DocumentParsingToolkit methods."""
 
     @classmethod
     def setUpTestData(cls):
@@ -395,9 +396,53 @@ class LoadToolkitRateConUpdateTests(TestCase):
             phone="555-000-0000",
             email="test@org.com",
         )
-        cls.toolkit = LoadToolkit()
+        cls.toolkit = DocumentParsingToolkit()
 
-    def test_update_ratecon_document_status_success(self):
+    # --- update_document_status ---
+
+    def test_update_document_status_success(self):
+        session = ParsingSessionFactory(organization=self.organization)
+        doc = RateConDocumentFactory(
+            session=session,
+            organization=self.organization,
+            status=DocumentStatus.PENDING,
+        )
+        ctx = _make_run_context(self.organization, ratecon_id=doc.pk)
+        result = self.toolkit.update_document_status(ctx, DocumentStatus.PROCESSING)
+
+        self.assertIn("Successfully updated", result)
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatus.PROCESSING)
+
+    def test_update_document_status_invalid_status(self):
+        session = ParsingSessionFactory(organization=self.organization)
+        doc = RateConDocumentFactory(
+            session=session,
+            organization=self.organization,
+        )
+        ctx = _make_run_context(self.organization, ratecon_id=doc.pk)
+        result = self.toolkit.update_document_status(ctx, "bogus_status")
+
+        self.assertIn("Error", result)
+        self.assertIn("Invalid status", result)
+
+    def test_update_document_status_not_found(self):
+        ctx = _make_run_context(self.organization, ratecon_id=99999)
+        result = self.toolkit.update_document_status(ctx, DocumentStatus.PARSED)
+
+        self.assertIn("Error", result)
+        self.assertIn("not found", result)
+
+    def test_update_document_status_missing_dependency(self):
+        ctx = _make_run_context(self.organization)  # ratecon_id defaults to None
+        result = self.toolkit.update_document_status(ctx, DocumentStatus.PARSED)
+
+        self.assertIn("Error", result)
+        self.assertIn("ratecon_id not found", result)
+
+    # --- assign_load_to_parsed_ratecon ---
+
+    def test_assign_load_to_parsed_ratecon_success(self):
         session = ParsingSessionFactory(organization=self.organization)
         doc = RateConDocumentFactory(
             session=session,
@@ -410,18 +455,44 @@ class LoadToolkitRateConUpdateTests(TestCase):
         )
         load = LoadFactory(organization=self.organization)
 
-        ctx = _make_run_context(self.organization)
-        result = self.toolkit.update_ratecon_document_status(ctx, doc.pk, load.pk)
+        ctx = _make_run_context(self.organization, ratecon_id=doc.pk)
+        result = self.toolkit.assign_load_to_parsed_ratecon(ctx, load.pk)
 
         self.assertIn("Successfully linked", result)
         parsed.refresh_from_db()
         self.assertEqual(parsed.load_id, load.pk)
 
-    def test_update_ratecon_document_status_not_found(self):
-        ctx = _make_run_context(self.organization)
-        result = self.toolkit.update_ratecon_document_status(ctx, 99999, 1)
+    def test_assign_load_to_parsed_ratecon_not_found(self):
+        ctx = _make_run_context(self.organization, ratecon_id=99999)
+        result = self.toolkit.assign_load_to_parsed_ratecon(ctx, 1)
+
         self.assertIn("Error", result)
         self.assertIn("No ParsedRateCon found", result)
+
+    def test_assign_load_to_parsed_ratecon_missing_dependency(self):
+        ctx = _make_run_context(self.organization)  # ratecon_id defaults to None
+        result = self.toolkit.assign_load_to_parsed_ratecon(ctx, 1)
+
+        self.assertIn("Error", result)
+        self.assertIn("ratecon_id not found", result)
+
+
+# ============================================================================
+# LoadToolkit Metadata Stripping Tests
+# ============================================================================
+
+@override_settings(DEBUG=False)
+class LoadToolkitMetadataStrippingTests(TestCase):
+    """Tests for LoadToolkit create_load_from_parsed metadata stripping."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.organization = Organization.objects.create(
+            company_name="Test Org",
+            phone="555-000-0000",
+            email="test@org.com",
+        )
+        cls.toolkit = LoadToolkit()
 
     def test_create_load_from_parsed_strips_metadata(self):
         """Verify that celery_task_id and ratecon_document_id are stripped before serializer."""
@@ -487,7 +558,7 @@ class CeleryTaskIntegrationTests(TestCase):
         mock_download.return_value = _create_pdf_buffer("Rate Con")
 
         mock_response = MagicMock()
-        mock_response.content = SAMPLE_AGENT_RESPONSE_PASS
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
         mock_processor.run.return_value = mock_response
 
         mock_load_creator.run.return_value = MagicMock(content="Load created")
@@ -495,10 +566,9 @@ class CeleryTaskIntegrationTests(TestCase):
         process_single_document(doc.pk)
 
         mock_load_creator.run.assert_called_once()
-        call_args = mock_load_creator.run.call_args
-        prompt = call_args[0][0]
-        self.assertIn("ratecon_document_id", prompt)
-        self.assertIn(str(doc.pk), prompt)
+        call_kwargs = mock_load_creator.run.call_args[1]
+        self.assertEqual(call_kwargs['dependencies']['ratecon_id'], doc.pk)
+        self.assertIn('celery_task_id', call_kwargs['dependencies'])
 
     @patch('machtms.core.utils.s3_utils.download_from_buffer')
     @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
@@ -510,7 +580,7 @@ class CeleryTaskIntegrationTests(TestCase):
         mock_download.return_value = _create_pdf_buffer("Invoice")
 
         mock_response = MagicMock()
-        mock_response.content = SAMPLE_AGENT_RESPONSE_FAIL
+        mock_response.content = SAMPLE_PARSED_DATA_FAIL
         mock_processor.run.return_value = mock_response
 
         process_single_document(doc.pk)
@@ -526,7 +596,7 @@ class CeleryTaskIntegrationTests(TestCase):
         mock_download.return_value = _create_pdf_buffer("Rate Con")
 
         mock_response = MagicMock()
-        mock_response.content = SAMPLE_AGENT_RESPONSE_PASS
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
         mock_processor.run.return_value = mock_response
 
         mock_load_creator.run.side_effect = Exception("Agent crashed")
@@ -540,7 +610,7 @@ class CeleryTaskIntegrationTests(TestCase):
     @patch('machtms.core.utils.s3_utils.download_from_buffer')
     @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
     @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
-    def test_process_document_passes_metadata_in_prompt(
+    def test_process_document_passes_metadata_in_dependencies(
         self, mock_load_creator, mock_processor, mock_download
     ):
         doc = self._create_pending_doc()
@@ -550,14 +620,42 @@ class CeleryTaskIntegrationTests(TestCase):
         mock_download.return_value = _create_pdf_buffer("Rate Con")
 
         mock_response = MagicMock()
-        mock_response.content = SAMPLE_AGENT_RESPONSE_PASS
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
         mock_processor.run.return_value = mock_response
 
         mock_load_creator.run.return_value = MagicMock(content="Load created")
 
         process_single_document(doc.pk)
 
-        call_args = mock_load_creator.run.call_args
-        prompt = call_args[0][0]
-        self.assertIn("celery_task_id: celery-task-abc", prompt)
-        self.assertIn(f"ratecon_document_id: {doc.pk}", prompt)
+        call_kwargs = mock_load_creator.run.call_args[1]
+        deps = call_kwargs['dependencies']
+        self.assertEqual(deps['celery_task_id'], "celery-task-abc")
+        self.assertEqual(deps['ratecon_id'], doc.pk)
+
+        # Verify metadata is NOT in the prompt text
+        prompt = mock_load_creator.run.call_args[0][0]
+        self.assertNotIn("Metadata:", prompt)
+        self.assertNotIn("celery_task_id:", prompt)
+        self.assertNotIn("ratecon_document_id:", prompt)
+
+    @patch('machtms.core.utils.s3_utils.download_from_buffer')
+    @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
+    def test_process_document_passes_dependencies_to_processor(
+        self, mock_processor, mock_download
+    ):
+        doc = self._create_pending_doc()
+        doc.celery_task_id = "celery-task-xyz"
+        doc.save(update_fields=['celery_task_id'])
+
+        mock_download.return_value = _create_pdf_buffer("Rate Con")
+
+        mock_response = MagicMock()
+        mock_response.content = SAMPLE_PARSED_DATA_FAIL
+        mock_processor.run.return_value = mock_response
+
+        process_single_document(doc.pk)
+
+        call_kwargs = mock_processor.run.call_args[1]
+        deps = call_kwargs['dependencies']
+        self.assertEqual(deps['celery_task_id'], "celery-task-xyz")
+        self.assertEqual(deps['ratecon_id'], doc.pk)

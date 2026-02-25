@@ -1,4 +1,5 @@
 from django.db import models
+from machtms.backend.addresses.models import CustomerAddress
 from machtms.core.base.models import TMSModel
 
 
@@ -8,7 +9,7 @@ class Customer(TMSModel):
     """
     customer_name = models.CharField(max_length=255)
     address = models.ForeignKey(
-        'machtms.Address',
+        CustomerAddress,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

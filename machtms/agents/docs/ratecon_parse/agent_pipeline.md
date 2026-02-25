@@ -18,6 +18,7 @@ The ratecon parsing pipeline has two agents that run back-to-back:
             +-----------------------+
                        |
               ParsedRateConData
+              (Pydantic instance)
                        |
                        v
             +-----------------------+
@@ -41,13 +42,25 @@ Think of it like a restaurant: the processor is the prep cook (clean, chop, orga
 
 **Model:** `gpt-5.2` (OpenAI)
 
-**Toolkits:** None -- this agent is purely text-in, text-out.
+**Toolkits:** None -- this agent is purely text-in, structured-data-out.
+
+**Output Schema:** `ParsedRateConData` -- the agent returns a validated Pydantic model directly.
 
 **History:** Disabled (`add_history_to_context=False`) -- each document is processed independently.
 
-### What does it solve?
+### What problem does it solve?
 
 Rate confirmation PDFs come in every imaginable format. Some are clean and structured. Others look like someone typed them in Word, printed them, scanned them, and then faxed them. The Rate Con Processor takes raw text extracted from these documents and normalizes it into a consistent, predictable structure.
+
+### Why Pydantic over templates?
+
+Previously, the agent output a rigid text template with `--- SECTION ---` headers and `Key: Value` lines. A regex parser (`parse_agent_response()`) then converted this text into a dict. This had problems:
+
+- **Key mismatch**: The template used mixed-case keys like `"Reference Number"` that didn't match the Pydantic model's snake_case fields (`reference_number`).
+- **Fragile parsing**: Any deviation in the LLM's output format would break the regex parser.
+- **Extra code**: A 70-line parser function that existed solely to bridge two incompatible formats.
+
+Now, with `output_schema=ParsedRateConData`, the agent returns a validated Pydantic instance directly. No parsing step. No format mismatch. The field descriptions on the Pydantic model replace the template instructions -- they guide the LLM on what to extract and how.
 
 ### The Two-Task Approach
 
@@ -64,69 +77,30 @@ A valid rate confirmation typically contains:
 - Rate/payment information
 - Carrier or broker information
 
-**Output:** Either `CLASSIFICATION: PASS` or `CLASSIFICATION: FAIL` with a reason.
+**Output:** The `classification` field is set to either `"PASS"` or `"FAIL"`, with `classification_reason` explaining any failure.
 
 > **What if we skipped classification?** We'd waste processing time on insurance certificates, BOL copies, delivery receipts, and other documents that people accidentally upload. Worse, the load creator would try to create loads from nonsensical data. Classification is the bouncer at the door.
 
-**If FAIL:** The agent stops here. No extraction. No load creation. The document is flagged and the reason is recorded.
+**If FAIL:** All other fields stay at their defaults. No extraction. No load creation. The document is flagged and the reason is recorded.
 
 #### Task 2: Extraction -- Pull Out the Data
 
-If the document passes classification, the agent extracts data into a rigid template. The template has four sections:
+If the document passes classification, the agent populates the `ParsedRateConData` fields. The field descriptions guide extraction:
 
-**Basic Info:**
-```
-Reference Number: RC-2025-001
-BOL Number: BOL-789
-Customer Name: ACME Freight Solutions
-Trailer Type: 53' Dry Van
-```
+- **reference_number**: "The primary reference or load number for the shipment..."
+- **bol_number**: "A single identifier for the full shipment. May be labeled BOL#, PU#, BM#..."
+- **stops**: Each stop gets a `ParsedStop` with street_address, city, state, zip_code, appointment, po_numbers, notes
+- **invoice emails**: Separate fields for standard pay and quick pay
 
-**Financial Info:**
-```
-Line Haul Rate: $2,500.00
-Fuel Surcharge: $375.00
-Total Rate: $2,875.00
-```
-
-> Note: The agent is instructed to only include *confirmed, real charges*. No speculative accessorials, no "possible detention" fees. If it's not explicitly on the rate con, it doesn't get extracted.
-
-**Stops:**
-```
-Stop 1:
-  Type: PICKUP
-  Street Address: 1234 Distribution Way
-  City: Los Angeles
-  State: CA
-  Zip: 90001
-  Appointment: 06/15/2025 08:00
-  PO Numbers: PO-1234, PO-5678
-  Notes: Check in at Gate B
-
-Stop 2:
-  Type: DELIVERY
-  Street Address: 5678 Warehouse Blvd
-  City: Dallas
-  State: TX
-  Zip: 75201
-  Appointment: 06/16/2025 14:00
-  PO Numbers: NONE
-  Notes: Call receiver 30 min before arrival
-```
-
-**Invoicing:**
-```
-Invoice Email (Standard Pay): ap@customer.com
-Invoice Email (Quick Pay): quickpay@customer.com
-```
+> Note: Financial data fields exist in the model but are commented out. The agent is still instructed to only recognize *confirmed, real charges* for when financial processing is enabled.
 
 ### Key Design Decisions
 
 **Why UNKNOWN instead of empty strings?** It makes it explicitly clear to the downstream agent that a value was not found, rather than leaving ambiguity about whether it was empty on the document or simply missed.
 
-**Why a rigid template instead of JSON?** The processor outputs text, not structured data. This is intentional. The text template is easier for the LLM to produce reliably and is parsed downstream into the `ParsedRateConData` Pydantic model (see [pydantic_models.md](pydantic_models.md)).
-
 **Why no tools?** The processor only reads text. It doesn't need to query the database, search for addresses, or create records. Giving it tools would introduce unnecessary complexity and the risk of unintended side effects during what should be a pure extraction step.
+
+**Why field descriptions as LLM instructions?** When Agno serializes a Pydantic `output_schema`, the field descriptions become part of the schema sent to the LLM. This means the data contract and the extraction instructions live in one place -- the Pydantic model. Change the model, and the agent automatically adapts.
 
 ---
 
@@ -147,11 +121,11 @@ Invoice Email (Quick Pay): quickpay@customer.com
 | `CustomerToolkit`    | Search for customers by name                      |
 | `StopHistoryToolkit` | Check what action codes are common at an address   |
 
-### What does it solve?
+### What problem does it solve?
 
-The processor gave us raw data: "Customer Name: ACME Freight Solutions", "Street Address: 1234 Distribution Way", "Type: PICKUP". But the database doesn't store customer names -- it stores customer IDs. It doesn't store street addresses as strings -- it stores address foreign keys. And it doesn't understand "PICKUP" -- it needs "LL" or "HL" or "EMPP".
+The processor gave us structured data: `customer_name: "ACME Freight Solutions"`, `street_address: "1234 Distribution Way"`, `stop_type: "PICKUP"`. But the database doesn't store customer names -- it stores customer IDs. It doesn't store street addresses as strings -- it stores address foreign keys. And it doesn't understand "PICKUP" -- it needs "LL" or "HL" or "EMPP".
 
-The load creator bridges that gap. It takes human-readable parsed data and resolves everything into database-ready values.
+The load creator bridges that gap. It takes the `ParsedRateConData` JSON and resolves everything into database-ready values.
 
 > **What if we didn't have this agent?** Someone would have to manually look up every customer, every address, and decide every action code. For a single load with 2 stops, that's a minimum of 5 database lookups and 2 judgment calls. Multiply that by dozens of rate cons per day, and you've got a full-time job that's now automated.
 
@@ -164,18 +138,18 @@ This is the heart of the load creation process. Each step is explicitly defined 
 #### Step 1: Resolve Customer
 
 ```
-Parsed data says:  "Customer Name: ACME Freight Solutions"
-Agent calls:       search_customers(name="ACME Freight Solutions")
-Result:            Customer ID 5, or null if not found
+Parsed JSON says:   "customer_name": "ACME Freight Solutions"
+Agent calls:        search_customers(name="ACME Freight Solutions")
+Result:             Customer ID 5, or null if not found
 ```
 
-The agent uses `CustomerToolkit.search_customers()` with a case-insensitive partial match. If the customer exists, it grabs the ID. If not, the customer field is set to `null` -- the load still gets created, it just won't be linked to a customer yet.
+The agent uses `CustomerToolkit.search_customers()` with a case-insensitive partial match. If the customer exists, it grabs the ID. If not, the customer field is set to `null`.
 
 > **Why not auto-create missing customers?** Because customer creation involves details beyond a name (payment terms, contact info, billing addresses). Creating a half-empty customer record would cause more problems than it solves.
 
 #### Step 2: Resolve Addresses
 
-For each stop in the parsed data:
+For each stop in the `stops` list:
 
 ```
 1. Search: search_addresses(street="1234 Distribution Way", city="Los Angeles", state="CA", zip="90001")
@@ -183,11 +157,11 @@ For each stop in the parsed data:
 3. Result: Address ID 12
 ```
 
-`ensure_address()` is a `get_or_create` operation -- it either finds an exact match or creates a new one. This prevents duplicate addresses from piling up while still handling new locations automatically.
+`ensure_address()` is a `get_or_create` operation -- it either finds an exact match or creates a new one.
 
 #### Step 3: Determine Stop Actions
 
-This is where it gets interesting. Rate confirmations speak in simple terms: "PICKUP" or "DELIVERY." But the TMS has 8 different action codes:
+Rate confirmations speak in simple terms: "PICKUP" or "DELIVERY." But the TMS has 8 different action codes:
 
 | Code   | When It's Used                              |
 |--------|---------------------------------------------|
@@ -200,7 +174,7 @@ This is where it gets interesting. Rate confirmations speak in simple terms: "PI
 | `HUBP` | Pick up from a hub/yard                       |
 | `HUBD` | Drop off at a hub/yard                        |
 
-**How does the agent decide?** With a priority system:
+**Priority system:**
 
 1. **Primary: Check history.** Call `get_action_code_frequency(address_id)` -- if this address has been visited before, the most common action code is probably correct.
 2. **Secondary: Get details.** If needed, call `get_similar_stops_for_address(address_id)` for more context.
@@ -209,11 +183,7 @@ This is where it gets interesting. Rate confirmations speak in simple terms: "PI
    - Middle stops (when 3+ stops) --> `LL` (Live Load)
    - Last stop --> `LU` (Live Unload)
 
-> **Why are positional defaults LL and LU?** Because in the vast majority of shipments, the first stop is a pickup (loading) and the last is a delivery (unloading). Live operations (driver waits) are more common than drop-and-hook. It's the safest statistical bet when there's no other information to go on.
-
 #### Step 4: Map Trailer Type
-
-Rate cons describe trailers in all sorts of ways: "53-foot dry van", "53' reefer", "48ft flatbed". The agent maps these to system codes:
 
 | Contains | Maps To      |
 |----------|-------------|
@@ -229,41 +199,25 @@ Rate cons describe trailers in all sorts of ways: "53-foot dry van", "53' reefer
 
 Convert human-readable dates like `06/15/2025 08:00` into ISO8601 UTC: `2025-06-15T15:00:00Z`.
 
-The key assumption: **if no timezone is specified, assume America/Los_Angeles (Pacific Time).** This makes sense for a California-based TMS where most rate cons come from West Coast brokers.
+The key assumption: **if no timezone is specified, assume America/Los_Angeles (Pacific Time).**
 
 #### Step 6: Assemble Payload
 
 The agent constructs a JSON object matching the `RateConLoadPayload` Pydantic model. Important details:
 
-- **PO numbers** are converted from lists to comma-separated strings (e.g., `['PO-1', 'PO-2']` becomes `"PO-1, PO-2"`)
-- **Status** is always `"pending"` -- loads start in pending state
-- **Billing status** is always `"pending_delivery"` -- can't bill before delivery
+- **PO numbers** are converted from JSON lists to comma-separated strings (e.g., `["PO-1", "PO-2"]` becomes `"PO-1, PO-2"`)
+- **Status** is always `"pending"`
+- **Billing status** is always `"pending_delivery"`
 - **No shipment_assignment** -- rate cons don't assign carriers/drivers to loads
-- **All stops in a single leg** -- multi-leg loads are handled differently
+- **All stops in a single leg**
 
 #### Step 7: Create the Load
 
-```python
-create_load_from_parsed(payload_json="{ ... }")
-```
-
-This calls `LoadToolkit.create_load_from_parsed()`, which:
-1. Validates through Pydantic (`RateConLoadPayload`)
-2. Strips metadata fields (`celery_task_id`, `ratecon_document_id`)
-3. Validates through Django's `LoadSerializer`
-4. Creates the load with all nested relations
-
-**If validation fails**, the agent reads the error messages, attempts to fix the payload, and retries. This self-healing behavior is built into the instructions: *"If create_load_from_parsed() returns validation errors, try to fix the payload and retry."*
+Calls `LoadToolkit.create_load_from_parsed()`, which validates through Pydantic, strips metadata fields, validates through Django's `LoadSerializer`, and creates the load.
 
 #### Step 8: Update Document Status
 
-If a `ratecon_document_id` was provided:
-
-```python
-update_ratecon_document_status(ratecon_document_id=42, load_id=new_load.id)
-```
-
-This links the newly created load back to the `ParsedRateCon` record, completing the traceability chain: **PDF --> ParsedRateCon --> Load**.
+If a `ratecon_document_id` was provided, calls `update_ratecon_document_status()` to link the newly created load back to the `ParsedRateCon` record, completing the traceability chain: **PDF --> ParsedRateCon --> Load**.
 
 ---
 
@@ -274,15 +228,15 @@ The agents don't call each other directly. Instead, the pipeline is orchestrated
 ```
 1. Celery task extracts text from PDF
 2. Celery task runs rate_con_processor with the text
-3. Processor output is parsed into ParsedRateConData (Pydantic)
+3. response.content is a ParsedRateConData instance (via output_schema)
 4. If classification == PASS:
      - ParsedRateConData is serialized to JSON
-     - Celery task (or synchronous caller) runs ratecon_load_creator with that JSON
+     - Celery task runs ratecon_load_creator with that JSON + metadata
 5. Load creator resolves all references and creates the load
 6. Load creator links load back to source document
 ```
 
-The data contract between the two agents is the `ParsedRateConData` model. The processor produces data that fits this shape; the load creator consumes it. As long as both sides respect this contract, the agents can be developed, tested, and improved independently.
+The data contract between the two agents is the `ParsedRateConData` model. The processor produces it directly via `output_schema`; the load creator consumes its JSON representation. As long as both sides respect this contract, the agents can be developed, tested, and improved independently.
 
 ---
 
@@ -308,13 +262,14 @@ This will be enabled once the financial serializers are production-ready.
 
 ## Summary Table
 
-| Aspect               | Rate Con Processor           | Rate Con Load Creator             |
-|-----------------------|-----------------------------|-----------------------------------|
-| **Role**              | Read and extract             | Resolve and create                 |
-| **Input**             | Raw PDF text                 | ParsedRateConData (JSON)           |
-| **Output**            | Structured text template     | Load record in database            |
-| **Toolkits**          | None                         | Load, Address, Customer, StopHistory |
-| **Makes DB changes?** | No                           | Yes                                |
-| **Can fail gracefully?** | Yes (CLASSIFICATION: FAIL) | Yes (retries on validation errors) |
-| **Model**             | gpt-5.2                      | gpt-5.2                           |
-| **History**           | Disabled                     | Disabled                           |
+| Aspect               | Rate Con Processor              | Rate Con Load Creator             |
+|-----------------------|--------------------------------|-----------------------------------|
+| **Role**              | Read and extract                | Resolve and create                 |
+| **Input**             | Raw PDF text                    | ParsedRateConData (JSON)           |
+| **Output**            | ParsedRateConData (Pydantic)    | Load record in database            |
+| **Mechanism**         | `output_schema`                 | Toolkit function calls             |
+| **Toolkits**          | None                            | Load, Address, Customer, StopHistory |
+| **Makes DB changes?** | No                              | Yes                                |
+| **Can fail gracefully?** | Yes (classification: FAIL)   | Yes (retries on validation errors) |
+| **Model**             | gpt-5.2                         | gpt-5.2                           |
+| **History**           | Disabled                        | Disabled                           |

@@ -324,7 +324,7 @@ Here's where each ratecon-relevant toolkit method gets called in the overall par
 PDF uploaded
     |
     v
-Rate Con Processor Agent (parses text into ParsedRateConData)
+Rate Con Processor Agent (returns ParsedRateConData via output_schema)
     |
     v
 Rate Con Load Creator Agent

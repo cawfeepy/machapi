@@ -1,4 +1,5 @@
 from django.db import models
+from machtms.backend.addresses.models import CarrierAddress
 from machtms.core.base.models import TMSModel
 
 
@@ -9,7 +10,10 @@ class Carrier(TMSModel):
     carrier_name = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
+    mc = models.CharField(max_length=20, blank=True)
+    usdot = models.CharField(max_length=20, blank=True)
     contractor = models.BooleanField(default=False)
+    address = models.ForeignKey(CarrierAddress, null=True, blank=True, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'Carrier'

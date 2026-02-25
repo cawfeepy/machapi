@@ -124,9 +124,9 @@ class ParsedRateCon(TMSModel):
     structured_data = models.JSONField(null=True, blank=True)
     load = models.ForeignKey(
         'machtms.Load',
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
     )
     classification_passed = models.BooleanField(default=True)
     classification_reason = models.TextField(blank=True)

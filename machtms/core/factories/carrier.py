@@ -14,7 +14,10 @@ class CarrierFactory(DjangoModelFactory):
     carrier_name = factory.Faker('company')
     phone = factory.Faker('numerify', text='###-###-####')
     email = factory.Faker('company_email')
+    mc = factory.Faker('numerify', text='MC-######')
+    usdot = factory.Faker('numerify', text='######')
     contractor = factory.Faker('boolean')
+    address = factory.SubFactory('machtms.core.factories.addresses.CarrierAddressFactory')
 
 
 class DriverFactory(DjangoModelFactory):

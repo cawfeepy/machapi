@@ -1,4 +1,8 @@
-from machtms.core.factories.addresses import AddressFactory
+from machtms.core.factories.addresses import (
+    AddressFactory,
+    CarrierAddressFactory,
+    CustomerAddressFactory,
+)
 from machtms.core.factories.carrier import CarrierFactory, DriverFactory
 from machtms.core.factories.creator_factories import (
     FakeAddressCreator,
@@ -27,6 +31,8 @@ from machtms.core.factories.routes import StopFactory
 __all__ = [
     # Address factories
     'AddressFactory',
+    'CarrierAddressFactory',
+    'CustomerAddressFactory',
     # Carrier factories
     'CarrierFactory',
     'DriverFactory',

@@ -3,6 +3,7 @@ from .addresses import AddressToolkit
 from .customers import CustomerToolkit
 from .carriers import CarrierDriverToolkit
 from .stops import StopHistoryToolkit
+from .document_parsing import DocumentParsingToolkit
 
 __all__ = [
     'LoadToolkit',
@@ -11,4 +12,5 @@ __all__ = [
     'CustomerToolkit',
     'CarrierDriverToolkit',
     'StopHistoryToolkit',
+    'DocumentParsingToolkit',
 ]

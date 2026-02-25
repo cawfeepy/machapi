@@ -4,12 +4,42 @@ from machtms.backend.addresses.models import (
     Address,
     AddressUsageAccumulate,
     AddressUsageByCustomerAccumulate,
+    CustomerAddress,
+    CarrierAddress,
 )
 from machtms.backend.addresses.serializers import (
     AddressSerializer,
     AddressUsageAccumulateSerializer,
     AddressUsageByCustomerAccumulateSerializer,
+    CustomerAddressSerializer,
+    CarrierAddressSerializer,
 )
+
+
+class CustomerAddressViewSet(TMSViewMixin, viewsets.ModelViewSet):
+    """
+    ViewSet for managing CustomerAddress objects.
+    Provides CRUD operations for customer addresses.
+    """
+    queryset = CustomerAddress.objects.all()
+    serializer_class = CustomerAddressSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['street', 'city', 'state', 'zip_code', 'country']
+    ordering_fields = ['city', 'state', 'zip_code']
+    ordering = ['city', 'state']
+
+
+class CarrierAddressViewSet(TMSViewMixin, viewsets.ModelViewSet):
+    """
+    ViewSet for managing CarrierAddress objects.
+    Provides CRUD operations for carrier addresses.
+    """
+    queryset = CarrierAddress.objects.all()
+    serializer_class = CarrierAddressSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['street', 'city', 'state', 'zip_code', 'country']
+    ordering_fields = ['city', 'state', 'zip_code']
+    ordering = ['city', 'state']
 
 
 class AddressViewSet(TMSViewMixin, viewsets.ModelViewSet):

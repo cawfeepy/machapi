@@ -4,7 +4,41 @@ from machtms.backend.addresses.models import (
     Address,
     AddressUsageAccumulate,
     AddressUsageByCustomerAccumulate,
+    CustomerAddress,
+    CarrierAddress,
 )
+
+
+class CustomerAddressSerializer(TMSBaseSerializer):
+    """Serializer for the CustomerAddress model."""
+
+    class Meta(TMSBaseSerializer.Meta):
+        model = CustomerAddress
+        fields = TMSBaseSerializer.Meta.fields + [
+            'id',
+            'street',
+            'city',
+            'state',
+            'zip_code',
+            'country',
+        ]
+        read_only_fields = ['id']
+
+
+class CarrierAddressSerializer(TMSBaseSerializer):
+    """Serializer for the CarrierAddress model."""
+
+    class Meta(TMSBaseSerializer.Meta):
+        model = CarrierAddress
+        fields = TMSBaseSerializer.Meta.fields + [
+            'id',
+            'street',
+            'city',
+            'state',
+            'zip_code',
+            'country',
+        ]
+        read_only_fields = ['id']
 
 
 class AddressSerializer(TMSBaseSerializer):
@@ -14,6 +48,7 @@ class AddressSerializer(TMSBaseSerializer):
         model = Address
         fields = TMSBaseSerializer.Meta.fields + [
             'id',
+            'place_name',
             'street',
             'city',
             'state',

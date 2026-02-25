@@ -1,5 +1,4 @@
 import logging
-import re
 import uuid
 from datetime import timedelta
 from io import BytesIO
@@ -29,78 +28,6 @@ def extract_text_from_pdf(file_buffer: BytesIO) -> str:
         text_parts.append(page.get_text())
     doc.close()
     return "\n".join(text_parts)
-
-
-def parse_agent_response(response_text: str) -> dict:
-    """Parse the structured template output from the rate con processor agent.
-
-    Returns a dict with:
-        - classification: 'PASS' or 'FAIL'
-        - classification_reason: reason string if FAIL
-        - raw_text: the full response text
-        - structured_data: dict of parsed fields
-    """
-    result = {
-        'classification': 'PASS',
-        'classification_reason': '',
-        'raw_text': response_text,
-        'structured_data': {},
-    }
-
-    lines = response_text.strip().split('\n')
-    data = {}
-    stops = []
-    current_stop = None
-
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            continue
-
-        # Check for classification
-        if stripped.upper().startswith('CLASSIFICATION:'):
-            value = stripped.split(':', 1)[1].strip().upper()
-            result['classification'] = 'PASS' if 'PASS' in value else 'FAIL'
-            continue
-
-        if stripped.upper().startswith('REASON:'):
-            result['classification_reason'] = stripped.split(':', 1)[1].strip()
-            continue
-
-        # Track sections — reset current_stop so subsequent keys go to top-level data
-        if stripped.startswith('---') and stripped.endswith('---'):
-            if current_stop:
-                stops.append(current_stop)
-                current_stop = None
-            continue
-
-        # Track stops
-        stop_match = re.match(r'^Stop\s+(\d+):', stripped)
-        if stop_match:
-            if current_stop:
-                stops.append(current_stop)
-            current_stop = {'stop_number': int(stop_match.group(1))}
-            continue
-
-        # Parse key-value pairs
-        if ':' in stripped:
-            key, _, value = stripped.partition(':')
-            key = key.strip()
-            value = value.strip()
-
-            if current_stop is not None:
-                current_stop[key.lower().replace(' ', '_')] = value
-            else:
-                data[key] = value
-
-    if current_stop:
-        stops.append(current_stop)
-
-    if stops:
-        data['stops'] = stops
-
-    result['structured_data'] = data
-    return result
 
 
 def process_single_document(document_id: int):
@@ -146,31 +73,32 @@ def process_single_document(document_id: int):
             doc.save(update_fields=['status', 'error_message', 'processed_at', 'updated_at'])
             return
 
-        # Call the agent
+        # Call the agent (returns ParsedRateConData via output_schema)
         from machtms.agents.members.rate_con_processor import rate_con_processor
 
         response = rate_con_processor.run(
             text,
             session_id=str(uuid.uuid4()),
-            dependencies={"organization": organization},
+            dependencies={
+                "organization": organization,
+                "celery_task_id": doc.celery_task_id,
+                "ratecon_id": doc.pk,
+            },
         )
 
-        response_text = response.content if hasattr(response, 'content') else str(response)
-
-        # Parse the response
-        parsed = parse_agent_response(response_text)
+        parsed_data = response.content  # ParsedRateConData instance
 
         # Create ParsedRateCon record
         ParsedRateCon.objects.create(
             organization=organization,
             document=doc,
-            raw_text=parsed['raw_text'],
-            structured_data=parsed['structured_data'],
-            classification_passed=(parsed['classification'] == 'PASS'),
-            classification_reason=parsed['classification_reason'],
+            raw_text=parsed_data.model_dump_json(),
+            structured_data=parsed_data.model_dump(),
+            classification_passed=(parsed_data.classification == 'PASS'),
+            classification_reason=parsed_data.classification_reason,
         )
 
-        if parsed['classification'] == 'PASS':
+        if parsed_data.classification == 'PASS':
             doc.status = DocumentStatus.PARSED
             doc.processed_at = timezone.now()
             doc.save(update_fields=['status', 'processed_at', 'updated_at'])
@@ -180,17 +108,18 @@ def process_single_document(document_id: int):
                 from machtms.agents.members.ratecon_load_creator import ratecon_load_creator
 
                 creator_prompt = (
-                    f"Create a load from this parsed rate confirmation data:\n\n"
-                    f"{response_text}\n\n"
-                    f"Metadata:\n"
-                    f"  celery_task_id: {doc.celery_task_id}\n"
-                    f"  ratecon_document_id: {doc.pk}"
+                    f"Create a load from this parsed rate confirmation data (JSON):\n\n"
+                    f"{parsed_data.model_dump_json(indent=2)}"
                 )
 
                 ratecon_load_creator.run(
                     creator_prompt,
                     session_id=str(uuid.uuid4()),
-                    dependencies={"organization": organization},
+                    dependencies={
+                        "organization": organization,
+                        "celery_task_id": doc.celery_task_id,
+                        "ratecon_id": doc.pk,
+                    },
                 )
             except Exception as load_err:
                 logger.exception(

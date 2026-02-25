@@ -12,11 +12,19 @@ class BaseAddress(TMSModel):
     class Meta(TMSModel.Meta):
         abstract = True
 
-class Address(BaseAddress):
+class CustomerAddress(BaseAddress):
+    pass
+
+class CarrierAddress(BaseAddress):
+    pass
+
+
+class Address(TMSModel):
     """
     Represents a physical address used in the transportation management system.
     Linked to customers through the AddressUsage intermediary model.
     """
+    place_name = models.TextField()
     street = models.CharField(max_length=300)
     city = models.CharField(max_length=50)
     state = models.CharField(max_length=2)
@@ -41,7 +49,7 @@ class Address(BaseAddress):
 
     def __str__(self):
         parts = [self.street, self.city, self.state, self.zip_code, self.country]
-        return ', '.join(part for part in parts if part)
+        return f"{self.place_name} - " + ', '.join(part for part in parts if part)
 
 
 class AddressUsageAccumulate(TMSModel):

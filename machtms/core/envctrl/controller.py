@@ -181,7 +181,9 @@ class EnvironmentController:
             enabled=self._env.bool("USE_CELERY", default=False),
             config_class=CeleryConfig,
             values={
-                "BROKER_URL": self._env.str("CELERY_BROKER_URL", default=""),
+                "BROKER_URL": self._env.str(
+                    "CELERY_BROKER_URL", 
+                    default="amqp://guest:guest@localhost:5672//"),
                 "RESULT_BACKEND": self._env.str("CELERY_RESULT_BACKEND", default=None),
                 "ACCEPT_CONTENT": self._env.list(
                     "CELERY_ACCEPT_CONTENT", default=["application/json"]

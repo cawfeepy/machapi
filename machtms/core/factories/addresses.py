@@ -6,7 +6,35 @@ from machtms.backend.addresses.models import (
     Address,
     AddressUsageAccumulate,
     AddressUsageByCustomerAccumulate,
+    CustomerAddress,
+    CarrierAddress,
 )
+
+
+class CustomerAddressFactory(DjangoModelFactory):
+    """Factory for creating CustomerAddress instances."""
+
+    class Meta:
+        model = CustomerAddress
+
+    street = factory.Faker('street_address')
+    city = factory.Faker('city')
+    state = factory.Faker('state_abbr')
+    zip_code = factory.Faker('zipcode')
+    country = factory.Faker('country')
+
+
+class CarrierAddressFactory(DjangoModelFactory):
+    """Factory for creating CarrierAddress instances."""
+
+    class Meta:
+        model = CarrierAddress
+
+    street = factory.Faker('street_address')
+    city = factory.Faker('city')
+    state = factory.Faker('state_abbr')
+    zip_code = factory.Faker('zipcode')
+    country = factory.Faker('country')
 
 
 class AddressFactory(DjangoModelFactory):
@@ -15,6 +43,7 @@ class AddressFactory(DjangoModelFactory):
     class Meta:
         model = Address
 
+    place_name = factory.Faker('company')
     street = factory.Faker('street_address')
     city = factory.Faker('city')
     state = factory.Faker('state_abbr')

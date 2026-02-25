@@ -11,7 +11,7 @@ class CustomerFactory(DjangoModelFactory):
         model = Customer
 
     customer_name = factory.Faker('company')
-    address = factory.SubFactory('machtms.core.factories.addresses.AddressFactory')
+    address = factory.SubFactory('machtms.core.factories.addresses.CustomerAddressFactory')
     phone_number = factory.Faker('numerify', text='###-###-####')
 
 

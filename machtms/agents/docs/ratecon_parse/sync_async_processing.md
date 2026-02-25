@@ -44,11 +44,11 @@ def process_session_sync(session_id: int):
 This is the straightforward approach. It's a `for` loop:
 
 ```
-Document 1: Download → Extract → Agent → Parse → Save ✓
-Document 2: Download → Extract → Agent → Parse → Save ✓
-Document 3: Download → Extract → Agent → Parse → Save ✓
+Document 1: Download → Extract → Agent (structured output) → Save ✓
+Document 2: Download → Extract → Agent (structured output) → Save ✓
+Document 3: Download → Extract → Agent (structured output) → Save ✓
 ...
-Document N: Download → Extract → Agent → Parse → Save ✓
+Document N: Download → Extract → Agent (structured output) → Save ✓
 Session: recompute_status()
 ```
 

@@ -46,6 +46,9 @@ class CarrierSerializer(TMSBaseSerializer):
             'carrier_name',
             'phone',
             'email',
+            'mc',
+            'usdot',
+            'address',
             'contractor',
             'drivers',
         ]
@@ -61,6 +64,8 @@ class CarrierListSerializer(TMSBaseSerializer):
             'id',
             'carrier_name',
             'phone',
+            'mc',
+            'usdot',
             'contractor',
             'driver_count',
         ]

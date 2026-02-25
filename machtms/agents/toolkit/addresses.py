@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from agno.tools import Toolkit
 from agno.run.base import RunContext
-from django.db.models import Q
 from django.utils import timezone
 
 from machtms.backend.addresses.models import Address, AddressUsageAccumulate, AddressUsageByCustomerAccumulate
@@ -14,6 +13,7 @@ class AddressToolkit(Toolkit):
     def __init__(self):
         super().__init__(name="address_toolkit")
         self.register(self.search_addresses)
+        self.register(self.create_address)
         self.register(self.ensure_address)
         self.register(self.get_recent_addresses_for_customer)
         self.register(self.list_addresses)
@@ -22,48 +22,75 @@ class AddressToolkit(Toolkit):
     def search_addresses(
         self,
         run_context: RunContext,
-        street: str = "",
-        city: str = "",
-        state: str = "",
-        zip_code: str = "",
+        street: str,
+        place_name: str,
     ) -> str:
-        """Search for addresses by partial, case-insensitive criteria.
+        """Find addresses by street and place name using case-insensitive prefix matching.
 
-        At least one criterion is required.
+        Both fields are required and must be at least 5 characters for effective matching.
 
         Args:
-            street: Partial street address.
-            city: Partial city name.
-            state: State abbreviation or partial name.
-            zip_code: ZIP/postal code.
+            street: Beginning of the street address (at least 5 characters).
+            place_name: Beginning of the place/facility name (at least 5 characters).
 
         Returns:
             Formatted list of matching addresses with their IDs.
         """
-        if not any([street, city, state, zip_code]):
-            return "Error: At least one search criterion is required."
+        if len(street) < 5 or len(place_name) < 5:
+            return "Error: Both street and place_name must be at least 5 characters."
 
         organization = run_context.dependencies["organization"]
-        qs = Address.objects.filter(organization=organization)
-
-        if street:
-            qs = qs.filter(street__icontains=street)
-        if city:
-            qs = qs.filter(city__icontains=city)
-        if state:
-            qs = qs.filter(state__icontains=state)
-        if zip_code:
-            qs = qs.filter(zip_code__icontains=zip_code)
-
-        addresses = qs[:20]
+        addresses = (
+            Address.objects
+            .filter(
+                organization=organization,
+                street__istartswith=street,
+                place_name__istartswith=place_name,
+            )[:20]
+        )
 
         if not addresses:
             return "No addresses found matching your criteria."
 
         lines = [f"Found {len(addresses)} address(es):"]
         for addr in addresses:
-            lines.append(f"  ID {addr.pk}: {addr.street}, {addr.city}, {addr.state} {addr.zip_code}")
+            lines.append(f"  ID {addr.pk}: {addr.place_name} - {addr.street}, {addr.city}, {addr.state} {addr.zip_code}")
         return "\n".join(lines)
+
+    def create_address(
+        self,
+        run_context: RunContext,
+        street: str,
+        city: str,
+        state: str,
+        zip_code: str,
+        place_name: str = "",
+        country: str = "US",
+    ) -> str:
+        """Create a new address in the system.
+
+        Args:
+            street: Full street address.
+            city: City name.
+            state: State abbreviation.
+            zip_code: ZIP/postal code.
+            place_name: Facility or business name at the address.
+            country: Country code (default US).
+
+        Returns:
+            Confirmation with the new address ID and details.
+        """
+        organization = run_context.dependencies["organization"]
+        addr = Address.objects.create(
+            organization=organization,
+            street=street,
+            city=city,
+            state=state,
+            zip_code=zip_code,
+            place_name=place_name,
+            country=country,
+        )
+        return f"Created address (ID {addr.pk}): {addr.place_name} - {addr.street}, {addr.city}, {addr.state} {addr.zip_code}"
 
     def ensure_address(
         self,
@@ -73,6 +100,7 @@ class AddressToolkit(Toolkit):
         state: str,
         zip_code: str,
         country: str = "US",
+        place_name: str = "",
     ) -> str:
         """Find an exact address match or create a new one. Returns the address ID.
 
@@ -82,6 +110,7 @@ class AddressToolkit(Toolkit):
             state: State abbreviation.
             zip_code: ZIP/postal code.
             country: Country code (default US).
+            place_name: Facility or business name at the address.
 
         Returns:
             Address ID and whether it was created or found.
@@ -93,10 +122,10 @@ class AddressToolkit(Toolkit):
             city=city,
             state=state,
             zip_code=zip_code,
-            defaults={"country": country},
+            defaults={"country": country, "place_name": place_name},
         )
         status = "Created new" if created else "Found existing"
-        return f"{status} address (ID {addr.pk}): {addr.street}, {addr.city}, {addr.state} {addr.zip_code}"
+        return f"{status} address (ID {addr.pk}): {addr.place_name} - {addr.street}, {addr.city}, {addr.state} {addr.zip_code}"
 
     def get_recent_addresses_for_customer(
         self,
@@ -161,7 +190,7 @@ class AddressToolkit(Toolkit):
 
         lines = [f"Listing {len(addresses)} address(es):"]
         for addr in addresses:
-            lines.append(f"  ID {addr.pk}: {addr.street}, {addr.city}, {addr.state} {addr.zip_code}")
+            lines.append(f"  ID {addr.pk}: {addr.place_name} - {addr.street}, {addr.city}, {addr.state} {addr.zip_code}")
         return "\n".join(lines)
 
     def get_recently_used_addresses(

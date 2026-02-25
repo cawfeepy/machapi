@@ -15,6 +15,7 @@ class CustomerToolkit(Toolkit):
     def __init__(self):
         super().__init__(name="customer_toolkit")
         self.register(self.search_customers)
+        self.register(self.create_customer)
         self.register(self.list_customers)
         self.register(self.get_recently_active_customers)
 
@@ -47,6 +48,29 @@ class CustomerToolkit(Toolkit):
             phone = c.phone_number or "N/A"
             lines.append(f"  ID {c.pk}: {c.customer_name} | Phone: {phone}")
         return "\n".join(lines)
+
+    def create_customer(
+        self,
+        run_context: RunContext,
+        customer_name: str,
+        phone_number: str = "",
+    ) -> str:
+        """Create a new customer in the system.
+
+        Args:
+            customer_name: Name of the customer/broker.
+            phone_number: Customer phone number (optional).
+
+        Returns:
+            Confirmation with the new customer ID and details.
+        """
+        organization = run_context.dependencies["organization"]
+        customer = Customer.objects.create(
+            organization=organization,
+            customer_name=customer_name,
+            phone_number=phone_number,
+        )
+        return f"Created customer (ID {customer.pk}): {customer.customer_name}"
 
     def list_customers(
         self,

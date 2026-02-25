@@ -40,7 +40,10 @@ class DevEnvironmentDataCreator:
         carriers = []
         drivers = []
         for _ in range(3):
-            carrier = CarrierFactory.create(organization=organization)
+            carrier = CarrierFactory.create(
+                organization=organization,
+                address__organization=organization,
+            )
             carriers.append(carrier)
             for _ in range(2):
                 driver = DriverFactory.create(
@@ -49,7 +52,11 @@ class DevEnvironmentDataCreator:
                 )
                 drivers.append(driver)
 
-        customers = CustomerFactory.create_batch(3, organization=organization)
+        customers = CustomerFactory.create_batch(
+            3,
+            organization=organization,
+            address__organization=organization,
+        )
 
         load_results = create_weekly_loads(
             loads_per_week=self.loads_per_week,

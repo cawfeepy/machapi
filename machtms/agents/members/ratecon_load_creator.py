@@ -3,6 +3,7 @@ from agno.models.openai import OpenAIChat
 
 from machtms.agents.toolkit.addresses import AddressToolkit
 from machtms.agents.toolkit.customers import CustomerToolkit
+from machtms.agents.toolkit.document_parsing import DocumentParsingToolkit
 from machtms.agents.toolkit.loads import LoadToolkit
 from machtms.agents.toolkit.stops import StopHistoryToolkit
 
@@ -10,19 +11,21 @@ ratecon_load_creator = Agent(
     name="Rate Con Load Creator",
     model=OpenAIChat(id="gpt-5.2"),
     add_history_to_context=False,
-    tools=[LoadToolkit(), AddressToolkit(), CustomerToolkit(), StopHistoryToolkit()],
+    tools=[LoadToolkit(), AddressToolkit(), CustomerToolkit(), StopHistoryToolkit(), DocumentParsingToolkit()],
     instructions=[
         "You create loads from parsed rate confirmation data.",
-        "You receive structured parsed data (from the rate_con_processor agent) and turn it into a load.",
+        "You receive JSON matching the ParsedRateConData schema (from the rate_con_processor agent) and turn it into a load.",
+        "Note: po_numbers arrives as a JSON list and needs to be joined into a comma-separated string for the payload.",
         "",
         "WORKFLOW:",
         "1. RESOLVE CUSTOMER: Search for the customer by name using search_customers().",
         "   - If found, use the customer ID.",
-        "   - If not found, set customer to null.",
+        "   - If not found, create the customer using create_customer() with the name from the rate con.",
         "",
         "2. RESOLVE ADDRESSES: For each stop, resolve the address:",
-        "   a. Search using search_addresses() with the street_address, city, state, zip.",
-        "   b. If not found, create it using ensure_address().",
+        "   a. Search using search_addresses() with the street and place_name from the rate con (at least 5 chars each).",
+        "   b. If found, use the existing address ID.",
+        "   c. If not found, create it using create_address() with street, city, state, zip_code, and place_name.",
         "",
         "3. DETERMINE STOP ACTIONS: Rate confirmations say 'PICKUP' or 'DELIVERY',",
         "   but our system uses specific action codes. For each stop:",
@@ -85,8 +88,6 @@ ratecon_load_creator = Agent(
         '  "trailer_type": "<SMALL_20|SMALL_28|MEDIUM_40|MEDIUM_45|LARGE_48|LARGE_53|empty>",',
         '  "status": "pending",',
         '  "billing_status": "pending_delivery",',
-        '  "celery_task_id": "<string or empty>",',
-        '  "ratecon_document_id": <int or null>,',
         '  "legs": [',
         '    {',
         '      "stops": [',
@@ -106,9 +107,9 @@ ratecon_load_creator = Agent(
         "",
         "7. CREATE LOAD: Call create_load_from_parsed() with the assembled JSON string.",
         "",
-        "8. UPDATE DOCUMENT STATUS: If ratecon_document_id was provided and is not null,",
-        "   call update_ratecon_document_status() with the ratecon_document_id and the",
-        "   newly created load ID to link the load back to its source document.",
+        "8. LINK LOAD TO DOCUMENT: After the load is created, call assign_load_to_parsed_ratecon()",
+        "   with the newly created load ID. The document ID is provided automatically via",
+        "   the run context — you do not need to pass it.",
         "",
         "IMPORTANT RULES:",
         "- All stops go in a single leg.",

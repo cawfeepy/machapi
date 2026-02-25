@@ -41,7 +41,8 @@ from machtms.agents.toolkit import (
 from machtms.backend.auth.models import Organization
 from machtms.backend.legs.models import ShipmentAssignment
 from machtms.backend.loads.models import Load, LoadStatus, BillingStatus
-from machtms.backend.addresses.models import AddressUsageAccumulate
+from machtms.backend.addresses.models import Address, AddressUsageAccumulate
+from machtms.backend.customers.models import Customer
 from machtms.core.factories import (
     AddressFactory,
     CarrierFactory,
@@ -54,12 +55,16 @@ from machtms.core.factories import (
 )
 
 
-def _make_run_context(organization):
+def _make_run_context(organization, celery_task_id="", ratecon_id=None):
     """Create a mock RunContext with the given organization in dependencies."""
     return RunContext(
         run_id="test-run",
         session_id="test-session",
-        dependencies={"organization": organization},
+        dependencies={
+            "organization": organization,
+            "celery_task_id": celery_task_id,
+            "ratecon_id": ratecon_id,
+        },
     )
 
 
@@ -680,6 +685,7 @@ class AddressToolkitTests(TestCase):
         )
         cls.address1 = AddressFactory.create(
             organization=cls.organization,
+            place_name="Acme Warehouse",
             street="123 Main Street",
             city="Los Angeles",
             state="CA",
@@ -687,6 +693,7 @@ class AddressToolkitTests(TestCase):
         )
         cls.address2 = AddressFactory.create(
             organization=cls.organization,
+            place_name="Portland Distribution Center",
             street="456 Oak Avenue",
             city="Portland",
             state="OR",
@@ -694,6 +701,7 @@ class AddressToolkitTests(TestCase):
         )
         cls.other_org_address = AddressFactory.create(
             organization=cls.other_org,
+            place_name="Acme Warehouse",
             street="123 Main Street",
             city="Los Angeles",
             state="CA",
@@ -704,36 +712,70 @@ class AddressToolkitTests(TestCase):
         self.toolkit = AddressToolkit()
         self.ctx = _make_run_context(self.organization)
 
-    def test_search_by_street(self):
-        result = self.toolkit.search_addresses(self.ctx, street="Main")
+    def test_search_by_street_and_place_name(self):
+        result = self.toolkit.search_addresses(self.ctx, street="123 Main", place_name="Acme Ware")
         self.assertIn("123 Main Street", result)
         self.assertNotIn("456 Oak", result)
 
-    def test_search_by_city(self):
-        result = self.toolkit.search_addresses(self.ctx, city="Portland")
-        self.assertIn("456 Oak Avenue", result)
-        self.assertNotIn("Main Street", result)
-
-    def test_search_by_state(self):
-        result = self.toolkit.search_addresses(self.ctx, state="CA")
+    def test_search_istartswith_case_insensitive(self):
+        result = self.toolkit.search_addresses(self.ctx, street="123 main", place_name="acme ware")
         self.assertIn("123 Main Street", result)
 
-    def test_search_by_zip(self):
-        result = self.toolkit.search_addresses(self.ctx, zip_code="97201")
-        self.assertIn("456 Oak Avenue", result)
-
-    def test_search_no_criteria_error(self):
-        result = self.toolkit.search_addresses(self.ctx)
-        self.assertIn("Error", result)
-
     def test_search_no_results(self):
-        result = self.toolkit.search_addresses(self.ctx, street="Nonexistent")
+        result = self.toolkit.search_addresses(self.ctx, street="999 Nonexistent", place_name="Nowhere Place")
         self.assertIn("No addresses found", result)
 
+    def test_search_short_input_error(self):
+        result = self.toolkit.search_addresses(self.ctx, street="123", place_name="Acme Ware")
+        self.assertIn("Error", result)
+        self.assertIn("at least 5 characters", result)
+
+    def test_search_short_place_name_error(self):
+        result = self.toolkit.search_addresses(self.ctx, street="123 Main", place_name="Acme")
+        self.assertIn("Error", result)
+        self.assertIn("at least 5 characters", result)
+
     def test_search_respects_org(self):
-        result = self.toolkit.search_addresses(self.ctx, street="Main")
+        result = self.toolkit.search_addresses(self.ctx, street="123 Main", place_name="Acme Ware")
         self.assertIn(f"ID {self.address1.pk}", result)
         self.assertNotIn(f"ID {self.other_org_address.pk}", result)
+
+    def test_search_prefix_only_matches(self):
+        """istartswith should not match in the middle of the string."""
+        result = self.toolkit.search_addresses(self.ctx, street="Main Street", place_name="Warehouse")
+        self.assertIn("No addresses found", result)
+
+    def test_create_address(self):
+        result = self.toolkit.create_address(
+            self.ctx,
+            street="789 New Blvd",
+            city="Denver",
+            state="CO",
+            zip_code="80201",
+            place_name="Denver Hub",
+        )
+        self.assertIn("Created address", result)
+        self.assertIn("789 New Blvd", result)
+        self.assertIn("Denver Hub", result)
+        self.assertTrue(
+            Address.objects.filter(
+                organization=self.organization,
+                street="789 New Blvd",
+            ).exists()
+        )
+
+    def test_create_address_defaults(self):
+        result = self.toolkit.create_address(
+            self.ctx,
+            street="100 Default St",
+            city="Austin",
+            state="TX",
+            zip_code="73301",
+        )
+        self.assertIn("Created address", result)
+        addr = Address.objects.get(organization=self.organization, street="100 Default St")
+        self.assertEqual(addr.country, "US")
+        self.assertEqual(addr.place_name, "")
 
     def test_ensure_address_creates_new(self):
         result = self.toolkit.ensure_address(
@@ -871,6 +913,33 @@ class CustomerToolkitTests(TestCase):
         result = self.toolkit.search_customers(self.ctx, name="Acme")
         self.assertIn(f"ID {self.customer_acme.pk}", result)
         self.assertNotIn(f"ID {self.other_org_customer.pk}", result)
+
+    def test_create_customer(self):
+        result = self.toolkit.create_customer(
+            self.ctx,
+            customer_name="New Logistics LLC",
+            phone_number="555-222-3333",
+        )
+        self.assertIn("Created customer", result)
+        self.assertIn("New Logistics LLC", result)
+        self.assertTrue(
+            Customer.objects.filter(
+                organization=self.organization,
+                customer_name="New Logistics LLC",
+            ).exists()
+        )
+
+    def test_create_customer_without_phone(self):
+        result = self.toolkit.create_customer(
+            self.ctx,
+            customer_name="No Phone Corp",
+        )
+        self.assertIn("Created customer", result)
+        customer = Customer.objects.get(
+            organization=self.organization,
+            customer_name="No Phone Corp",
+        )
+        self.assertEqual(customer.phone_number, "")
 
     def test_search_shows_phone(self):
         result = self.toolkit.search_customers(self.ctx, name="Acme")
