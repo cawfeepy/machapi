@@ -244,6 +244,10 @@ class EnvironmentController:
                     "GMAIL_REDIRECT_URI", default="http://localhost:8000/oauth2callback"
                 ),
                 "SENDER_EMAIL": self._env.str("GMAIL_SENDER_EMAIL", default=None),
+                "SCOPES": self._env.list("GMAIL_API_SCOPES", default=[
+                    "https://www.googleapis.com/auth/gmail.send",
+                    "https://www.googleapis.com/auth/gmail.readonly",
+                ]),
             },
             required_vars=["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"],
         )

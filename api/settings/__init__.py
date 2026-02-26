@@ -9,16 +9,15 @@ To change settings file:
 `DJANGO_ENV=production python manage.py runserver`
 """
 
-from split_settings.tools import include, optional
-from environments import env
+from split_settings.tools import include
+from machtms.core.envctrl import get_env
 
-ENV = env("DJANGO_ENV")
+env = get_env()
+
+ENV = env.django.DJANGO_ENV
 
 _settings = [
         "components/*.py",
-        optional(f"environments/databases.{ENV}.py"),
-        optional(f"environments/redis.{ENV}.py"),
         ]
 
 include(*_settings)
-

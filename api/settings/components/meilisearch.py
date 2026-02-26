@@ -1,7 +1,9 @@
-from api.settings import DEBUG
+from machtms.core.envctrl import env
 
-
-MEILI_URL = 'http://127.0.0.1:7700'
-MEILI_API_KEY = 'master_key_123'
-#MEILI_INDEX_PREFIX=f'{"DEBUG_" if DEBUG else ""}TMS'
-
+if env.meilisearch.available:
+    cfg = env.meilisearch.config
+    MEILI_URL = cfg.URL
+    MEILI_API_KEY = cfg.API_KEY.get_secret_value() if cfg.API_KEY else None
+else:
+    MEILI_URL = 'http://127.0.0.1:7700'
+    MEILI_API_KEY = 'master_key_123'

@@ -1,5 +1,5 @@
+import os
 import dj_database_url
-from django.conf import settings
 from machtms.core.envctrl import env
 
 DATABASES = {}
@@ -17,6 +17,11 @@ if env.django.DEBUG:
     }
 
 else:
-    default = dj_database_url.config()
+    db_url = dj_database_url.config()
+    _ca_cert = os.path.join(env.BASE_DIR, 'ca-certificate.crt')
+    if os.path.exists(_ca_cert):
+        db_url.setdefault('OPTIONS', {})
+        db_url['OPTIONS']['sslrootcert'] = _ca_cert
+    default = db_url
 
 DATABASES['default'] = default

@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 from rest_framework.test import APIClient, APITestCase
 from PIL import Image, ImageDraw, ImageFont
-from environments import BASE_DIR
+from machtms.core.envctrl import env
 from machtms.backend.DocumentManager.models import PostShipmentDocument
 from machtms.backend.DocumentManager.tasks import upload_to_shipment
 from machtms.core.utils import s3_utils as s3
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 _download_from_buffer = s3.__name__ + ".download_from_buffer"
 _upload_to_post = s3.__name__ + ".upload_to_post_shipment_bucket"
-test_documents = Path(BASE_DIR) / 'test_documents'
+test_documents = Path(env.BASE_DIR) / 'test_documents'
 
 
 class DocumentFactory:

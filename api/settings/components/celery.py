@@ -1,17 +1,18 @@
 # https://www.shubhamdipt.com/blog/django-celery-and-rabbitmq/
-from environments import env
+from machtms.core.envctrl import env
 
-if env("USE_CELERY"):
-    CELERY_BROKER_URL = env("CELERY_BROKER_URL")
-    CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=None)
+if env.celery.available:
+    cfg = env.celery.config
+    CELERY_BROKER_URL = cfg.BROKER_URL
+    CELERY_RESULT_BACKEND = cfg.RESULT_BACKEND
 
-    CELERY_ACCEPT_CONTENT = ["application/json"]
-    CELERY_TASK_SERIALIZER = "json"
-    CELERY_RESULT_SERIALIZER = "json"
-    CELERY_TIMEZONE = "UTC"
+    CELERY_ACCEPT_CONTENT = cfg.ACCEPT_CONTENT
+    CELERY_TASK_SERIALIZER = cfg.TASK_SERIALIZER
+    CELERY_RESULT_SERIALIZER = cfg.RESULT_SERIALIZER
+    CELERY_TIMEZONE = cfg.TIMEZONE
 
-    CELERY_TASK_TRACK_STARTED = True
-    CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+    CELERY_TASK_TRACK_STARTED = cfg.TASK_TRACK_STARTED
+    CELERY_TASK_TIME_LIMIT = cfg.TASK_TIME_LIMIT
 
     # CeleryController signal logging settings
     # Set to True to enable logging for successful task completions

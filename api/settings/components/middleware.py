@@ -1,5 +1,4 @@
-from api.settings import DEBUG, INSECURE
-from environments import env
+from machtms.core.envctrl import env
 
 '''
 configs/middleware.py
@@ -9,6 +8,9 @@ Depends on the environment
 it's convenient to remove CORS and CSRF
 to avoid boilerplate setup.
 '''
+
+DEBUG = env.django.DEBUG
+INSECURE = env.django.INSECURE
 
 CSRF_MIDDLEWARES = [
     "machtms.core.middleware.exemption_csrf.ExemptCSRFMiddleware",
@@ -27,4 +29,3 @@ MIDDLEWARE = [
     'machtms.core.testing.OrganizationTestMiddleware',  # Must be after OrganizationMiddleware
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-

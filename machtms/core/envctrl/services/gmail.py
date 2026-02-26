@@ -1,6 +1,6 @@
 """Gmail API configuration settings."""
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, SecretStr
 
@@ -13,6 +13,10 @@ class GmailConfig(BaseModel):
     REFRESH_TOKEN: SecretStr = Field(...)
     REDIRECT_URI: str = Field(default="http://localhost:8000/oauth2callback")
     SENDER_EMAIL: Optional[str] = None
+    SCOPES: List[str] = Field(default=[
+        "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.readonly",
+    ])
 
     model_config = {"extra": "ignore"}
 

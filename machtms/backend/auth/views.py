@@ -1,7 +1,7 @@
 from knox.models import AuthToken
 from rest_framework import generics, permissions, exceptions, status
 from django.conf import settings
-from environments import env
+from machtms.core.envctrl import env
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from machtms.backend.auth.models import OrganizationAPIKey, UserProfile
@@ -50,7 +50,7 @@ class LoginView(generics.GenericAPIView):
                 samesite='Lax',
                 httponly=True,
                 secure=IS_SECURE,
-                domain=f".{env('HOST')}"
+                domain=f".{env.django.HOST}"
             )
             return response
         except exceptions.ValidationError:
