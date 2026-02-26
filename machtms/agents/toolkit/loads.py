@@ -422,4 +422,50 @@ class LoadToolkit(Toolkit):
             return f"Error: Invalid payload — {e}"
 
         stripped = payload.model_dump(exclude={'celery_task_id', 'ratecon_document_id'})
-        return self.create_load(run_context, json.dumps(stripped))
+
+        try:
+            data = json.loads(json.dumps(stripped))
+        except json.JSONDecodeError as e:
+            return f"Error: Invalid JSON — {e}"
+
+        organization = run_context.dependencies["organization"]
+
+        from types import SimpleNamespace
+        mock_request = SimpleNamespace(
+            organization=organization.id,
+            user=SimpleNamespace(userprofile=None),
+        )
+        from machtms.backend.loads.serializers import LoadSerializer
+
+        serializer = LoadSerializer(
+            data=data,
+            context={'request': mock_request},
+        )
+
+        if not serializer.is_valid():
+            error_lines = ["Validation errors:"]
+            for field, errors in serializer.errors.items():
+                if isinstance(errors, list):
+                    error_lines.append(f"  {field}: {'; '.join(str(e) for e in errors)}")
+                else:
+                    error_lines.append(f"  {field}: {errors}")
+            return "\n".join(error_lines)
+
+        load = serializer.save()
+
+        # Auto-link load to ParsedRateCon if ratecon_id is in the run context
+        ratecon_id = run_context.dependencies.get("ratecon_id")
+        if ratecon_id:
+            from machtms.backend.RateConParser.models import ParsedRateCon
+            try:
+                parsed = ParsedRateCon.objects.get(document_id=ratecon_id)
+                parsed.load_id = load.pk
+                parsed.save(update_fields=['load_id'])
+            except ParsedRateCon.DoesNotExist:
+                pass
+
+        pt = ZoneInfo("America/Los_Angeles")
+        loaded = self._base_queryset(organization).filter(pk=load.pk).first()
+        if loaded:
+            return f"Load created successfully!\n\n{self._format_load(loaded, pt, include_date=True)}"
+        return f"Load created successfully (ID: {load.pk}, Reference: {load.reference_number})."

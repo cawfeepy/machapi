@@ -27,7 +27,7 @@ def load_environment(base_dir: Path) -> environ.Env:
     # Load main .env.local
     local_env = base_dir / ".env.local"
     if local_env.exists():
-        env.read_env(str(local_env), overwrite=True)
+        env.read_env(str(local_env), overwrite=False)
         logger.debug(f"Loaded environment from {local_env}")
     else:
         logger.warning(f"No .env.local found at {local_env}")
@@ -39,7 +39,7 @@ def load_environment(base_dir: Path) -> environ.Env:
     for service in services:
         env_file = env_files_dir / f".env.{service}"
         if env_file.exists():
-            env.read_env(str(env_file), overwrite=True)
+            env.read_env(str(env_file), overwrite=False)
             logger.debug(f"Loaded environment from {env_file}")
 
     return env

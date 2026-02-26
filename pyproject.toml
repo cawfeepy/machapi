@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "agno>=2.5.5",
     "amqp==5.3.1",
     "annotated-types==0.7.0",
     "appnope==0.1.4",
@@ -79,6 +80,7 @@ dependencies = [
     "mypy==1.14.1",
     "mypy-extensions==1.0.0",
     "numpy==2.2.2",
+    "openai>=2.24.0",
     "openapi-python-client>=0.28.1",
     "openpyxl==3.1.5",
     "packaging==24.2",
@@ -119,6 +121,7 @@ dependencies = [
     "sqlparse==0.5.3",
     "stack-data==0.6.3",
     "sysrsync==1.1.1",
+    "testcontainers>=4.14.1",
     "tinycss2==1.4.0",
     "tinyhtml5==2.0.0",
     "toml==0.10.2",

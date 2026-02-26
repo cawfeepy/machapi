@@ -1,5 +1,6 @@
 import boto3
 import os
+from botocore.config import Config
 from io import BytesIO
 from django.conf import settings
 
@@ -8,16 +9,22 @@ s3_client = boto3.client(
     's3',
     aws_access_key_id=settings.AWS_ACCESS_KEY,
     aws_secret_access_key=settings.AWS_SECRET_KEY,
-    region_name=settings.AWS_REGION_NAME
+    region_name=settings.AWS_REGION_NAME,
+    endpoint_url=f'https://s3.{settings.AWS_REGION_NAME}.amazonaws.com',
+    config=Config(signature_version='s3v4'),
 )
 
-def generate_presigned_url(action, bucket_name=None, object_key=None, expires=180):
+def generate_presigned_url(action, bucket_name=None, object_key=None, expires=180, content_type=None):
     if (bucket_name or object_key) is None:
         raise Exception("Bucket name or object_key cannot be None")
 
+    params = {'Bucket': bucket_name, 'Key': object_key}
+    if content_type:
+        params['ContentType'] = content_type
+
     presigned_url = s3_client.generate_presigned_url(
             action,
-            Params={'Bucket': bucket_name, 'Key': object_key},
+            Params=params,
             ExpiresIn=expires
     )
     return presigned_url
@@ -25,7 +32,7 @@ def generate_presigned_url(action, bucket_name=None, object_key=None, expires=18
 
 def download_from_buffer(
     object_key,
-    bucket_name=settings.AWS_POST_SHIPMENT_BUCKET
+    bucket_name
 ):
     buffer = BytesIO()
     s3_client.download_fileobj(bucket_name, object_key, buffer)
@@ -36,9 +43,9 @@ def download_from_buffer(
 def upload_to_post_shipment_bucket(
     object_key,
     filestream,
+    bucket_name,
     content_type='application/pdf',
-    bucket_name=settings.AWS_UPLOAD_BUCKET
-        ):
+):
     s3_client.put_object(
             bucket_name,
             object_key,

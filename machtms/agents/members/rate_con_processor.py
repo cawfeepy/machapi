@@ -2,13 +2,11 @@ from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 
 from machtms.agents.models.ratecon_payload import ParsedRateConData
-from machtms.agents.toolkit.document_parsing import DocumentParsingToolkit
 
 rate_con_processor = Agent(
     name="Rate Con Processor",
-    model=OpenAIChat(id="gpt-5.2"),
+    model=OpenAIChat(id="gpt-5-mini"),
     add_history_to_context=False,
-    tools=[DocumentParsingToolkit()],
     output_schema=ParsedRateConData,
     instructions=[
         "You are a Rate Confirmation document processor. You perform two tasks on each document.",

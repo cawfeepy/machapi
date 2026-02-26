@@ -5,6 +5,10 @@ This module provides a test runner that automatically sets up PostgreSQL,
 RabbitMQ, and Redis containers for integration testing.
 """
 
+import os
+import subprocess
+import sys
+import threading
 import time
 from typing import Any
 
@@ -26,8 +30,19 @@ class TestContainerRunner(DiscoverRunner):
     running tests and tears them down afterward.
     """
 
+    @classmethod
+    def add_arguments(cls, parser):
+        super().add_arguments(parser)
+        parser.add_argument(
+            '--use-celery',
+            action='store_true',
+            default=False,
+            help='Start a Celery worker subprocess for integration tests',
+        )
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the test runner."""
+        self.use_celery = kwargs.pop('use_celery', False)
         super().__init__(*args, **kwargs)
         self.postgres_container: PostgresTestContainer | None = None
         self.rabbitmq_container: RabbitMQTestContainer | None = None
@@ -36,6 +51,7 @@ class TestContainerRunner(DiscoverRunner):
         self._original_celery_broker: str | None = None
         self._original_celery_result_backend: str | None = None
         self._original_redis_url: str | None = None
+        self.celery_worker_process: subprocess.Popen | None = None
 
     def setup_test_environment(self, **kwargs: Any) -> None:
         """
@@ -158,7 +174,10 @@ class TestContainerRunner(DiscoverRunner):
 
             print(f"Updated DATABASES['default'] with container settings")
 
-        return super().setup_databases(**kwargs)
+        result = super().setup_databases(**kwargs)
+        if self.use_celery:
+            self._start_celery_worker()
+        return result
 
     def update_celery_settings(self) -> None:
         """Update Celery settings to use the RabbitMQ and Redis containers."""
@@ -190,6 +209,108 @@ class TestContainerRunner(DiscoverRunner):
             redis_url = self.redis_container.get_redis_url()
             settings.REDIS_URL = redis_url
             print(f"Updated REDIS_URL: {redis_url}")
+
+    def _start_celery_worker(self) -> None:
+        """Start a Celery worker subprocess pointing at the test database."""
+        print("\n" + "=" * 60)
+        print("Starting Celery worker subprocess...")
+        print("=" * 60)
+
+        # Build environment for the worker process
+        worker_env = os.environ.copy()
+
+        # Database settings (test DB name is already set by this point)
+        db = settings.DATABASES['default']
+        worker_env['POSTGRES_HOST'] = db['HOST']
+        worker_env['POSTGRES_PORT'] = str(db['PORT'])
+        worker_env['POSTGRES_DB'] = db['NAME']  # This is the test_ prefixed name
+        worker_env['POSTGRES_USER'] = db['USER']
+        worker_env['POSTGRES_PASSWORD'] = db['PASSWORD']
+
+        # Celery settings
+        worker_env['USE_CELERY'] = 'True'
+        worker_env['CELERY_BROKER_URL'] = getattr(settings, 'CELERY_BROKER_URL', '')
+        worker_env['CELERY_RESULT_BACKEND'] = getattr(
+            settings, 'CELERY_RESULT_BACKEND', ''
+        )
+
+        # Django settings module
+        worker_env['DJANGO_SETTINGS_MODULE'] = 'api.settings'
+
+        # AWS credentials if available
+        for attr in [
+            'AWS_ACCESS_KEY', 'AWS_SECRET_KEY', 'AWS_REGION_NAME',
+            'AWS_UPLOAD_BUCKET', 'AWS_POST_SHIPMENT_BUCKET',
+            'AWS_RATECON_PARSE_BUCKET',
+        ]:
+            val = getattr(settings, attr, None)
+            if val:
+                worker_env[attr] = str(val)
+
+        # OpenAI key for agent processing
+        openai_key = os.environ.get('OPENAI_API_KEY', '')
+        if openai_key:
+            worker_env['OPENAI_API_KEY'] = openai_key
+
+        cmd = [
+            sys.executable, '-m', 'celery',
+            '-A', 'api',
+            'worker',
+            '--loglevel=info',
+            '--concurrency=1',
+            '--pool=solo',
+        ]
+
+        print(f"  -> Command: {' '.join(cmd)}")
+        print(f"  -> Test DB: {db['NAME']}")
+        print(f"  -> Worker POSTGRES_DB: {worker_env.get('POSTGRES_DB')}")
+        print(f"  -> Worker POSTGRES_HOST: {worker_env.get('POSTGRES_HOST')}")
+        print(f"  -> Worker POSTGRES_PORT: {worker_env.get('POSTGRES_PORT')}")
+
+        self.celery_worker_process = subprocess.Popen(
+            cmd,
+            env=worker_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+
+        # Stream worker output on a daemon thread
+        def _stream_output(proc):
+            for line in iter(proc.stdout.readline, b''):
+                print(f"[celery] {line.decode().rstrip()}")
+
+        output_thread = threading.Thread(
+            target=_stream_output,
+            args=(self.celery_worker_process,),
+            daemon=True,
+        )
+        output_thread.start()
+
+        # Wait briefly and verify process is alive
+        time.sleep(3)
+        if self.celery_worker_process.poll() is not None:
+            raise RuntimeError(
+                f"Celery worker exited immediately with code "
+                f"{self.celery_worker_process.returncode}"
+            )
+
+        print(f"  -> Celery worker started (PID: {self.celery_worker_process.pid})")
+        print("=" * 60 + "\n")
+
+    def _stop_celery_worker(self) -> None:
+        """Stop the Celery worker subprocess if it is running."""
+        if self.celery_worker_process is not None:
+            print("Stopping Celery worker...")
+            self.celery_worker_process.terminate()
+            try:
+                self.celery_worker_process.wait(timeout=5)
+                print("  -> Celery worker stopped gracefully")
+            except subprocess.TimeoutExpired:
+                print("  -> Celery worker did not stop, killing...")
+                self.celery_worker_process.kill()
+                self.celery_worker_process.wait()
+                print("  -> Celery worker killed")
+            self.celery_worker_process = None
 
     def _cleanup_containers(self) -> None:
         """Stop and clean up all containers."""
@@ -231,10 +352,14 @@ class TestContainerRunner(DiscoverRunner):
         """
         Tear down the test databases.
 
+        Stops the Celery worker first so its DB connection is closed
+        before Django attempts to DROP the test database.
+
         Args:
             old_config: Database configuration from setup_databases.
             **kwargs: Additional arguments passed to parent method.
         """
+        self._stop_celery_worker()
         super().teardown_databases(old_config, **kwargs)
 
     def teardown_test_environment(self, **kwargs: Any) -> None:
@@ -250,6 +375,7 @@ class TestContainerRunner(DiscoverRunner):
         print("Tearing down testcontainers...")
         print("=" * 60)
 
+        self._stop_celery_worker()
         self._cleanup_containers()
         self._restore_original_settings()
 

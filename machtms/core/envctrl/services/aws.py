@@ -11,6 +11,7 @@ class AWSConfig(BaseModel):
     REGION_NAME: str = Field(default="us-west-1")
     UPLOAD_BUCKET: str = Field(..., min_length=1)
     POST_SHIPMENT_BUCKET: str = Field(..., min_length=1)
+    RATECON_PARSE_BUCKET: str = Field(default="debug-rateconparse")
 
     model_config = {"extra": "ignore"}
 

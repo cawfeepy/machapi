@@ -1,4 +1,6 @@
 import logging
+import os
+import uuid
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -11,6 +13,7 @@ from machtms.core.utils import s3_utils as s3
 from .models import ParsingSession, RateConDocument, DocumentStatus, SessionStatus
 from .serializers import (
     CreateSessionRequestSerializer,
+    DocumentUploadRequestSerializer,
     ProcessSessionRequestSerializer,
     ParsingSessionSerializer,
     ParsingSessionDetailSerializer,
@@ -21,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateSessionView(APIView):
-    """Create a parsing session and return presigned URLs for file uploads."""
+    """Create a parsing session."""
 
     @extend_schema(
         operation_id="RateConCreateSession",
@@ -30,58 +33,98 @@ class CreateSessionView(APIView):
             name="RateConCreateSessionResponse",
             fields={
                 'session_id': serializers.IntegerField(),
-                'uploads': serializers.ListSerializer(child=inline_serializer(
-                    name="RateConUploadInfo",
-                    fields={
-                        'document_id': serializers.IntegerField(),
-                        'filename': serializers.CharField(),
-                        'presigned_url': serializers.CharField(),
-                        's3_key': serializers.CharField(),
-                    }
-                )),
             }
         )},
     )
     def post(self, request):
-        serializer = CreateSessionRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
         session = ParsingSession.objects.create(
-            organization=request.organization,
+            organization_id=request.organization,
             status=SessionStatus.UPLOADING,
         )
 
-        uploads = []
-        for file_info in serializer.validated_data['files']:
-            filename = file_info['filename']
-            mime_type = file_info.get('mime_type', 'application/pdf')
-            s3_key = s3.create_object_key(f"ratecon/{session.pk}/{filename}")
-
-            doc = RateConDocument.objects.create(
-                organization=request.organization,
-                session=session,
-                original_filename=filename,
-                s3_key=s3_key,
-                mime_type=mime_type,
-                status=DocumentStatus.UPLOADING,
-            )
-
-            presigned_url = s3.generate_presigned_url(
-                'put_object',
-                bucket_name=settings.AWS_UPLOAD_BUCKET,
-                object_key=s3_key,
-            )
-
-            uploads.append({
-                'document_id': doc.pk,
-                'filename': filename,
-                'presigned_url': presigned_url,
-                's3_key': s3_key,
-            })
-
         return Response({
             'session_id': session.pk,
-            'uploads': uploads,
+        }, status=status.HTTP_201_CREATED)
+
+
+class DocumentUploadView(APIView):
+    """Generate a presigned URL and create a RateConDocument for a single file upload."""
+
+    @staticmethod
+    def generate_s3_key(extension: str = ".pdf") -> str:
+        """Generate a unique S3 key using a UUID."""
+        return f"{uuid.uuid4()}{extension}"
+
+    @staticmethod
+    def resolve_duplicate_filename(filename: str, organization_id: int) -> str:
+        """Resolve duplicate filenames by appending a counter suffix."""
+        if not RateConDocument.objects.filter(
+            organization_id=organization_id,
+            original_filename=filename,
+        ).exists():
+            return filename
+        name, ext = os.path.splitext(filename)
+        counter = 1
+        while RateConDocument.objects.filter(
+            organization_id=organization_id,
+            original_filename=f"{name}-{counter}{ext}",
+        ).exists():
+            counter += 1
+        return f"{name}-{counter}{ext}"
+
+    @extend_schema(
+        operation_id="RateConDocumentUpload",
+        request=DocumentUploadRequestSerializer,
+        responses={201: inline_serializer(
+            name="RateConDocumentUploadResponse",
+            fields={
+                'document_id': serializers.IntegerField(),
+                'original_filename': serializers.CharField(),
+                's3_key': serializers.CharField(),
+                'presigned_url': serializers.CharField(),
+            }
+        )},
+    )
+    def post(self, request):
+        serializer = DocumentUploadRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        session_id = serializer.validated_data['session_id']
+        filename = serializer.validated_data['filename']
+        mime_type = serializer.validated_data.get('mime_type', 'application/pdf')
+
+        session = get_object_or_404(
+            ParsingSession.objects.filter(organization=request.organization),
+            pk=session_id,
+        )
+
+        org_id = getattr(request.organization, 'pk', request.organization)
+        resolved_filename = self.resolve_duplicate_filename(filename, org_id)
+
+        _, ext = os.path.splitext(filename)
+        s3_key = self.generate_s3_key(extension=ext if ext else ".pdf")
+
+        doc = RateConDocument.objects.create(
+            organization_id=request.organization,
+            session=session,
+            original_filename=resolved_filename,
+            s3_key=s3_key,
+            mime_type=mime_type,
+            status=DocumentStatus.UPLOADING,
+        )
+
+        presigned_url = s3.generate_presigned_url(
+            'put_object',
+            bucket_name=settings.AWS_RATECON_PARSE_BUCKET,
+            object_key=s3_key,
+            content_type=mime_type,
+        )
+
+        return Response({
+            'document_id': doc.pk,
+            'original_filename': resolved_filename,
+            's3_key': s3_key,
+            'presigned_url': presigned_url,
         }, status=status.HTTP_201_CREATED)
 
 

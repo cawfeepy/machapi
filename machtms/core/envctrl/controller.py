@@ -221,6 +221,9 @@ class EnvironmentController:
                 "POST_SHIPMENT_BUCKET": self._env.str(
                     "AWS_POST_SHIPMENT_BUCKET", default=""
                 ),
+                "RATECON_PARSE_BUCKET": self._env.str(
+                    "AWS_RATECON_PARSE_BUCKET", default="debug-rateconparse"
+                ),
             },
             required_vars=[
                 "AWS_ACCESS_KEY",

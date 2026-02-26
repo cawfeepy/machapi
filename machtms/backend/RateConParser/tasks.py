@@ -60,7 +60,7 @@ def process_single_document(document_id: int):
         # Download from S3
         file_buffer = s3_utils.download_from_buffer(
             doc.s3_key,
-            bucket_name=settings.AWS_UPLOAD_BUCKET,
+            bucket_name=settings.AWS_RATECON_PARSE_BUCKET,
         )
 
         # Extract text
@@ -99,11 +99,6 @@ def process_single_document(document_id: int):
         )
 
         if parsed_data.classification == 'PASS':
-            doc.status = DocumentStatus.PARSED
-            doc.processed_at = timezone.now()
-            doc.save(update_fields=['status', 'processed_at', 'updated_at'])
-
-            # Trigger load creation from parsed rate con data
             try:
                 from machtms.agents.members.ratecon_load_creator import ratecon_load_creator
 
@@ -121,10 +116,18 @@ def process_single_document(document_id: int):
                         "ratecon_id": doc.pk,
                     },
                 )
+                # Load created and linked -- NOW set PARSED
+                doc.status = DocumentStatus.PARSED
+                doc.processed_at = timezone.now()
+                doc.save(update_fields=['status', 'processed_at', 'updated_at'])
             except Exception as load_err:
                 logger.exception(
-                    f"Load creation failed for document {document_id}: {load_err}"
+                    f"Load creation failed for doc {document_id}: {load_err}"
                 )
+                doc.status = DocumentStatus.FAILED
+                doc.error_message = f"Parsed OK but load creation failed: {str(load_err)[:400]}"
+                doc.processed_at = timezone.now()
+                doc.save(update_fields=['status', 'error_message', 'processed_at', 'updated_at'])
         else:
             doc.status = DocumentStatus.MISCLASSIFIED
             doc.processed_at = timezone.now()

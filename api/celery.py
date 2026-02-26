@@ -21,6 +21,7 @@ app = Celery("machtms")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.autodiscover_tasks()
+app.autodiscover_tasks(['machtms.backend.RateConParser'])
 
 # Initialize Celery signal handlers for centralized logging
 from machtms.core.celerycontroller import setup_celery_logging

@@ -6,15 +6,16 @@ from .models import ParsingSession, RateConDocument, ParsedRateCon, SessionStatu
 
 # --- Request Serializers ---
 
-class FileUploadRequestSerializer(serializers.Serializer):
-    """Describes a single file to be uploaded."""
+class CreateSessionRequestSerializer(serializers.Serializer):
+    """Request body for creating a new parsing session (empty body accepted)."""
+    pass
+
+
+class DocumentUploadRequestSerializer(serializers.Serializer):
+    """Request body for uploading a single document to a session."""
+    session_id = serializers.IntegerField()
     filename = serializers.CharField()
     mime_type = serializers.CharField(default='application/pdf')
-
-
-class CreateSessionRequestSerializer(serializers.Serializer):
-    """Request body for creating a new parsing session with file metadata."""
-    files = FileUploadRequestSerializer(many=True)
 
 
 class ProcessSessionRequestSerializer(serializers.Serializer):
