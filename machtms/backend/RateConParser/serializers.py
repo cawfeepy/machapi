@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from machtms.core.base.serializers import TMSBaseSerializer
-from .models import ParsingSession, RateConDocument, ParsedRateCon, SessionStatus, DocumentStatus
+from .models import ParsingSession, RateConDocument, SessionStatus, DocumentStatus
 
 
 # --- Request Serializers ---
@@ -25,20 +25,16 @@ class ProcessSessionRequestSerializer(serializers.Serializer):
 
 # --- Model Serializers ---
 
-class ParsedRateConSerializer(TMSBaseSerializer):
-    """Serializer for parsed rate confirmation content."""
-
-    class Meta(TMSBaseSerializer.Meta):
-        model = ParsedRateCon
-        fields = '__all__'
-        read_only_fields = [
-            'document', 'raw_text', 'structured_data', 'load',
-            'classification_passed', 'classification_reason', 'created_at',
-        ]
-
-
 class RateConDocumentSerializer(TMSBaseSerializer):
     """Serializer for rate confirmation documents."""
+    load = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_load(self, obj):
+        parsed = getattr(obj, 'parsed_content', None)
+        if parsed and parsed.load_id:
+            return parsed.load_id
+        return None
 
     class Meta(TMSBaseSerializer.Meta):
         model = RateConDocument
@@ -46,23 +42,8 @@ class RateConDocumentSerializer(TMSBaseSerializer):
             'id', 'organization', 'session', 'status', 'original_filename',
             's3_key', 'file_size', 'mime_type', 'error_message',
             'celery_task_id', 'processed_at', 'created_at', 'updated_at',
+            'load',
         ]
-
-
-class RateConDocumentDetailSerializer(RateConDocumentSerializer):
-    """Document serializer with nested parsed content."""
-    parsed_content = ParsedRateConSerializer(read_only=True)
-
-    class Meta(RateConDocumentSerializer.Meta):
-        fields = RateConDocumentSerializer.Meta.fields + ['parsed_content']
-
-
-class RateConDocumentStatusSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for document status polling."""
-
-    class Meta:
-        model = RateConDocument
-        fields = ['id', 'status', 'original_filename', 'error_message', 'processed_at']
 
 
 class ParsingSessionSerializer(TMSBaseSerializer):

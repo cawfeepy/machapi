@@ -17,7 +17,7 @@ from .serializers import (
     ProcessSessionRequestSerializer,
     ParsingSessionSerializer,
     ParsingSessionDetailSerializer,
-    RateConDocumentDetailSerializer,
+    RateConDocumentSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -332,7 +332,9 @@ class SessionDetailView(APIView):
     )
     def get(self, request, session_id):
         session = get_object_or_404(
-            ParsingSession.objects.filter(organization=request.organization),
+            ParsingSession.objects.prefetch_related(
+                'documents__parsed_content',
+            ).filter(organization=request.organization),
             pk=session_id,
         )
         serializer = ParsingSessionDetailSerializer(session)
@@ -340,16 +342,18 @@ class SessionDetailView(APIView):
 
 
 class DocumentDetailView(APIView):
-    """Get document details with parsed content."""
+    """Get document details."""
 
     @extend_schema(
         operation_id="RateConDocumentDetail",
-        responses={200: RateConDocumentDetailSerializer},
+        responses={200: RateConDocumentSerializer},
     )
     def get(self, request, document_id):
         doc = get_object_or_404(
-            RateConDocument.objects.filter(organization=request.organization),
+            RateConDocument.objects.select_related('parsed_content').filter(
+                organization=request.organization,
+            ),
             pk=document_id,
         )
-        serializer = RateConDocumentDetailSerializer(doc)
+        serializer = RateConDocumentSerializer(doc)
         return Response(serializer.data)
