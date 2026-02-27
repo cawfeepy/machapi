@@ -330,7 +330,7 @@ class TestRunnerCommandExecutionTestCase(TestCase):
         result = self.runner.run_command('sleep 100', timeout=5)
 
         self.assertEqual(result.exit_code, -1)
-        self.assertIn('timeout', result.stderr.lower())
+        self.assertIn('timed out', result.stderr.lower())
 
     @patch('subprocess.run')
     def test_runs_from_project_root(self, mock_run):

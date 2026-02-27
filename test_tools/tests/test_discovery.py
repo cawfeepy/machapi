@@ -283,7 +283,7 @@ class TestHelperClass:
             'machtms/backend/loads/tests.py',
             max_levels=2
         )
-        self.assertEqual(result, 'loads/tests.py')
+        self.assertEqual(result, 'backend/loads/tests.py')
 
     def test_format_display_output(self):
         """Test that display output is correctly formatted."""

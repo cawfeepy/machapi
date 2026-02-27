@@ -44,13 +44,14 @@ class LoginView(generics.GenericAPIView):
                     user, context=self.get_serializer_context()
                 ).data
             })
+            domain = None if settings.DEBUG else f'.{env.django.HOST}'
             response.set_cookie(
                 'auth_token',
                 token[1],
                 samesite='Lax',
                 httponly=True,
                 secure=IS_SECURE,
-                domain=f".{env.django.HOST}"
+                domain=domain,
             )
             return response
         except exceptions.ValidationError:

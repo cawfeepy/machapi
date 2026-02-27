@@ -35,7 +35,7 @@ Module Structure:
       └── Edge cases (3)
 """
 from datetime import datetime, timedelta
-from django.test import override_settings
+from django.test import modify_settings, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -466,6 +466,9 @@ class CalendarDayEndpointTests(APITestCase):
         today = timezone.now().date().isoformat()
         self.assertEqual(response.data['date'], today)
 
+    @modify_settings(MIDDLEWARE={
+        'remove': ['machtms.core.middleware.dev_cookie_bypass.CookieAutomaticBypassMiddleware']
+    })
     def test_unauthenticated_request_rejected(self):
         """Test that unauthenticated requests are rejected."""
         self.client.force_authenticate(user=None)
@@ -760,6 +763,9 @@ class CalendarWeekEndpointTests(APITestCase):
 
     # ==================== EDGE CASES ====================
 
+    @modify_settings(MIDDLEWARE={
+        'remove': ['machtms.core.middleware.dev_cookie_bypass.CookieAutomaticBypassMiddleware']
+    })
     def test_unauthenticated_request_rejected(self):
         """Test that unauthenticated requests are rejected."""
         self.client.force_authenticate(user=None)

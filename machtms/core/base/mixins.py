@@ -171,8 +171,7 @@ class TMSViewMixin(LoggingMixin):
 
 
     def perform_create(self, serializer):
-        org: Optional[Organization] = self.request.organization
-        serializer.save(organization=self.request.organization)
+        serializer.save(organization_id=self.request.organization)
 
 
 # ========== SERIALIZER MIXINS ==========

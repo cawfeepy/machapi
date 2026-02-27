@@ -26,6 +26,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'machtms.core.middleware.organization.OrganizationMiddleware',
-    'machtms.core.testing.OrganizationTestMiddleware',  # Must be after OrganizationMiddleware
+    *(['machtms.core.middleware.dev_cookie_bypass.CookieAutomaticBypassMiddleware'] if DEBUG else []),
+    'machtms.core.testing.OrganizationTestMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

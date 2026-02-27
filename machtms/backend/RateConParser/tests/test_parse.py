@@ -18,6 +18,7 @@ from unittest import skipUnless
 from unittest.mock import patch, MagicMock
 
 import pymupdf
+from django.conf import settings
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -31,6 +32,7 @@ from machtms.backend.RateConParser.models import (
 from machtms.agents.models.ratecon_payload import ParsedRateConData, ParsedStop
 from machtms.backend.RateConParser.tasks import (
     extract_text_from_pdf,
+    send_pdf_url_to_agent,
     process_single_document,
     cleanup_stale_uploads,
 )
@@ -462,6 +464,154 @@ class CleanupTaskTests(TestCase):
 
 
 # ============================================================================
+# Process Document Mode Tests (raw text vs. PDF URL)
+# ============================================================================
+
+@override_settings(DEBUG=False)
+class ProcessDocumentModeTests(TestCase):
+    """Tests for process_single_document with use_raw_text flag."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.organization = Organization.objects.create(
+            company_name="Test Org Mode",
+            phone="555-000-0000",
+            email="mode@org.com",
+        )
+
+    def _create_pending_doc(self):
+        session = ParsingSessionFactory(organization=self.organization)
+        doc = RateConDocumentFactory(
+            session=session,
+            organization=self.organization,
+            status=DocumentStatus.PENDING,
+        )
+        return doc
+
+    @patch('machtms.core.utils.s3_utils.download_from_buffer')
+    @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_raw_text_path_calls_agent_with_string(self, mock_load_creator, mock_agent, mock_download):
+        """use_raw_text=True calls agent.run(text) without files kwarg."""
+        doc = self._create_pending_doc()
+
+        pdf_buffer = _create_pdf_buffer("Rate Confirmation RC-12345")
+        mock_download.return_value = pdf_buffer
+
+        mock_response = MagicMock()
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
+        mock_agent.run.return_value = mock_response
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
+
+        process_single_document(doc.pk, use_raw_text=True)
+
+        # Agent should be called with text, NOT with files
+        mock_agent.run.assert_called_once()
+        call_kwargs = mock_agent.run.call_args
+        self.assertNotIn('files', call_kwargs.kwargs)
+        # First positional arg should be a text string
+        self.assertIsInstance(call_kwargs.args[0], str)
+        self.assertIn("Rate Confirmation", call_kwargs.args[0])
+
+    @patch('machtms.backend.RateConParser.tasks.send_pdf_url_to_agent')
+    @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_pdf_url_path_calls_send_pdf_url_to_agent(self, mock_load_creator, mock_agent, mock_send_pdf):
+        """use_raw_text=False calls send_pdf_url_to_agent instead of downloading."""
+        doc = self._create_pending_doc()
+
+        mock_response = MagicMock()
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
+        mock_send_pdf.return_value = mock_response
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
+
+        process_single_document(doc.pk, use_raw_text=False)
+
+        # send_pdf_url_to_agent should be called
+        mock_send_pdf.assert_called_once()
+        call_kwargs = mock_send_pdf.call_args
+        self.assertEqual(call_kwargs.kwargs['s3_key'], doc.s3_key)
+
+    @patch('machtms.backend.RateConParser.tasks.send_pdf_url_to_agent')
+    @patch('machtms.core.utils.s3_utils.download_from_buffer')
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_pdf_url_path_does_not_download_from_s3(self, mock_load_creator, mock_download, mock_send_pdf):
+        """use_raw_text=False should NOT call download_from_buffer."""
+        doc = self._create_pending_doc()
+
+        mock_response = MagicMock()
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
+        mock_send_pdf.return_value = mock_response
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
+
+        process_single_document(doc.pk, use_raw_text=False)
+
+        mock_download.assert_not_called()
+
+    @patch('machtms.backend.RateConParser.tasks.send_pdf_url_to_agent')
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_pdf_url_path_pass_creates_record(self, mock_load_creator, mock_send_pdf):
+        """PASS classification via PDF URL path creates ParsedRateCon."""
+        doc = self._create_pending_doc()
+
+        mock_response = MagicMock()
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
+        mock_send_pdf.return_value = mock_response
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
+
+        process_single_document(doc.pk, use_raw_text=False)
+
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatus.PARSED)
+        self.assertTrue(hasattr(doc, 'parsed_content'))
+        self.assertTrue(doc.parsed_content.classification_passed)
+
+    @patch('machtms.backend.RateConParser.tasks.send_pdf_url_to_agent')
+    def test_pdf_url_path_fail_sets_misclassified(self, mock_send_pdf):
+        """FAIL classification via PDF URL path sets MISCLASSIFIED status."""
+        doc = self._create_pending_doc()
+
+        mock_response = MagicMock()
+        mock_response.content = SAMPLE_PARSED_DATA_FAIL
+        mock_send_pdf.return_value = mock_response
+
+        process_single_document(doc.pk, use_raw_text=False)
+
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, DocumentStatus.MISCLASSIFIED)
+        self.assertFalse(doc.parsed_content.classification_passed)
+
+    @patch('machtms.core.utils.s3_utils.generate_presigned_url')
+    def test_send_pdf_url_to_agent_generates_presigned_url(self, mock_presigned):
+        """Unit test send_pdf_url_to_agent generates a presigned URL and calls agent.run with File."""
+        mock_presigned.return_value = "https://s3.example.com/test-key?signed=1"
+
+        mock_agent = MagicMock()
+        mock_response = MagicMock()
+        mock_response.content = SAMPLE_PARSED_DATA_PASS
+        mock_agent.run.return_value = mock_response
+
+        result = send_pdf_url_to_agent(
+            s3_key="test-key.pdf",
+            agent=mock_agent,
+            session_id="test-session",
+            dependencies={"organization": self.organization},
+        )
+
+        mock_presigned.assert_called_once_with(
+            'get_object',
+            bucket_name=settings.AWS_RATECON_PARSE_BUCKET,
+            object_key="test-key.pdf",
+            expires=300,
+        )
+        mock_agent.run.assert_called_once()
+        call_kwargs = mock_agent.run.call_args
+        self.assertIn('files', call_kwargs.kwargs)
+        self.assertEqual(len(call_kwargs.kwargs['files']), 1)
+        self.assertEqual(result, mock_response)
+
+
+# ============================================================================
 # Agent Integration Tests (requires OPENAI_API_KEY)
 # ============================================================================
 
@@ -780,3 +930,90 @@ class RateConToLoadEndToEndTests(TestCase):
 
         # Basic sanity: reference number should be populated
         self.assertTrue(load.reference_number, "Load should have a reference number")
+
+
+# ============================================================================
+# E2E Tests for raw text vs. PDF URL mode (requires OPENAI_API_KEY + test_documents/)
+# ============================================================================
+
+@skipUnless(
+    os.environ.get('OPENAI_API_KEY') and _has_test_documents(),
+    "OPENAI_API_KEY not set or test_documents/ missing"
+)
+@override_settings(DEBUG=False)
+class ProcessSingleDocumentModeE2ETests(TestCase):
+    """E2E tests comparing use_raw_text=True vs. use_raw_text=False.
+
+    Requires:
+    - OPENAI_API_KEY environment variable
+    - machtms/test_documents/ directory with at least one PDF
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.organization = Organization.objects.create(
+            company_name="Mode E2E Org",
+            phone="555-000-0000",
+            email="mode-e2e@org.com",
+        )
+
+    def _get_first_pdf_path(self):
+        return os.path.join(
+            TEST_DOCUMENTS_DIR,
+            sorted(f for f in os.listdir(TEST_DOCUMENTS_DIR) if f.endswith('.pdf'))[0],
+        )
+
+    @patch('machtms.core.utils.s3_utils.download_from_buffer')
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_use_raw_text_true_with_real_pdf(self, mock_load_creator, mock_download):
+        """use_raw_text=True with a real PDF: mocked S3 download, real agent call."""
+        pdf_path = self._get_first_pdf_path()
+        filename = os.path.basename(pdf_path)
+
+        with open(pdf_path, 'rb') as f:
+            pdf_buffer = BytesIO(f.read())
+        mock_download.return_value = pdf_buffer
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
+
+        session = ParsingSessionFactory(organization=self.organization)
+        doc = RateConDocumentFactory(
+            session=session,
+            organization=self.organization,
+            original_filename=filename,
+            status=DocumentStatus.PENDING,
+        )
+
+        process_single_document(doc.pk, use_raw_text=True)
+
+        doc.refresh_from_db()
+        print(f"\n[raw text mode] {filename} -> status={doc.status}")
+        self.assertIn(doc.status, [DocumentStatus.PARSED, DocumentStatus.MISCLASSIFIED])
+        self.assertTrue(hasattr(doc, 'parsed_content'))
+
+    @patch('machtms.core.utils.s3_utils.generate_presigned_url')
+    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
+    def test_use_raw_text_false_with_real_pdf(self, mock_load_creator, mock_presigned):
+        """use_raw_text=False with a real PDF: mocked presigned URL, real agent call."""
+        pdf_path = self._get_first_pdf_path()
+        filename = os.path.basename(pdf_path)
+
+        # Generate a real presigned URL is not possible without AWS creds,
+        # so we use a publicly accessible test PDF URL for the agent
+        mock_presigned.return_value = "https://agno-public.s3.amazonaws.com/recipes/ThaiRecipes.pdf"
+        mock_load_creator.run.return_value = MagicMock(content="Load created")
+
+        session = ParsingSessionFactory(organization=self.organization)
+        doc = RateConDocumentFactory(
+            session=session,
+            organization=self.organization,
+            original_filename=filename,
+            status=DocumentStatus.PENDING,
+        )
+
+        process_single_document(doc.pk, use_raw_text=False)
+
+        doc.refresh_from_db()
+        print(f"\n[PDF URL mode] {filename} -> status={doc.status}")
+        # The agent should process the PDF (ThaiRecipes.pdf is not a rate con, so FAIL is expected)
+        self.assertIn(doc.status, [DocumentStatus.PARSED, DocumentStatus.MISCLASSIFIED])
+        self.assertTrue(hasattr(doc, 'parsed_content'))

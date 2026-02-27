@@ -67,6 +67,12 @@ class TestContainerRunner(DiscoverRunner):
         """
         super().setup_test_environment(**kwargs)
 
+        # Expose --use-celery flag so tests can skip when no worker is running
+        if self.use_celery:
+            os.environ['USE_CELERY_TESTS'] = '1'
+        else:
+            os.environ.pop('USE_CELERY_TESTS', None)
+
         # Store original settings
         self._original_databases = dict(settings.DATABASES)
         self._original_celery_broker = getattr(settings, "CELERY_BROKER_URL", None)
@@ -257,8 +263,8 @@ class TestContainerRunner(DiscoverRunner):
             '-A', 'api',
             'worker',
             '--loglevel=info',
-            '--concurrency=1',
-            '--pool=solo',
+            '--concurrency=2',
+            '--pool=threads',
         ]
 
         print(f"  -> Command: {' '.join(cmd)}")

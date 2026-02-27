@@ -221,6 +221,93 @@ class ProcessSessionView(APIView):
         }, status=status.HTTP_202_ACCEPTED)
 
 
+class ProcessSessionPdfView(APIView):
+    """Trigger processing of a parsing session using direct PDF mode (presigned URL)."""
+
+    @extend_schema(
+        operation_id="RateConProcessSessionPdf",
+        request=ProcessSessionRequestSerializer,
+        responses={202: inline_serializer(
+            name="RateConProcessSessionPdfResponse",
+            fields={
+                'session_id': serializers.IntegerField(),
+                'mode': serializers.CharField(),
+                'message': serializers.CharField(),
+            }
+        )},
+    )
+    def post(self, request, session_id):
+        session = get_object_or_404(
+            ParsingSession.objects.filter(organization=request.organization),
+            pk=session_id,
+        )
+
+        serializer = ProcessSessionRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        mode = serializer.validated_data['mode']
+
+        pending_count = session.documents.filter(status=DocumentStatus.PENDING).count()
+        if pending_count == 0:
+            return Response(
+                {'detail': 'No pending documents to process.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .tasks import process_session_sync, process_session_async
+        from machtms.core.celerycontroller.controller import CeleryController
+
+        controller = CeleryController()
+
+        if mode == 'sync':
+            controller.delay(process_session_sync, session.pk, use_raw_text=False)
+        else:
+            controller.delay(process_session_async, session.pk, use_raw_text=False)
+
+        return Response({
+            'session_id': session.pk,
+            'mode': mode,
+            'message': f'PDF processing started for {pending_count} document(s).',
+        }, status=status.HTTP_202_ACCEPTED)
+
+
+class ProcessDocumentPdfView(APIView):
+    """Trigger processing of a single document using direct PDF mode (presigned URL)."""
+
+    @extend_schema(
+        operation_id="RateConProcessDocumentPdf",
+        request=None,
+        responses={202: inline_serializer(
+            name="RateConProcessDocumentPdfResponse",
+            fields={
+                'document_id': serializers.IntegerField(),
+                'message': serializers.CharField(),
+            }
+        )},
+    )
+    def post(self, request, document_id):
+        doc = get_object_or_404(
+            RateConDocument.objects.filter(organization=request.organization),
+            pk=document_id,
+        )
+
+        if doc.status != DocumentStatus.PENDING:
+            return Response(
+                {'detail': f'Document is not in PENDING state (current: {doc.status}).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from .tasks import process_document
+        from machtms.core.celerycontroller.controller import CeleryController
+
+        controller = CeleryController()
+        controller.delay(process_document, doc.pk, use_raw_text=False)
+
+        return Response({
+            'document_id': doc.pk,
+            'message': 'PDF processing started.',
+        }, status=status.HTTP_202_ACCEPTED)
+
+
 class SessionListView(APIView):
     """List all parsing sessions for the organization."""
 
