@@ -30,7 +30,7 @@ from machtms.agents.toolkit.stops import StopHistoryToolkit
 from machtms.backend.auth.models import Organization
 from machtms.backend.RateConParser.models import (
     DocumentStatus,
-    ParsedRateCon,
+    RateConDocument,
 )
 from machtms.backend.RateConParser.tasks import process_single_document
 from machtms.core.factories import (
@@ -40,7 +40,6 @@ from machtms.core.factories import (
     StopFactory,
     ParsingSessionFactory,
     RateConDocumentFactory,
-    ParsedRateConFactory,
 )
 
 
@@ -375,7 +374,7 @@ class RateConLoadCreatorConfigTests(TestCase):
         self.assertIn("get_action_code_frequency()", self.instructions)
 
     def test_instructions_mention_assign_load(self):
-        self.assertIn("assign_load_to_parsed_ratecon()", self.instructions)
+        self.assertIn("assign_load_to_document()", self.instructions)
 
     def test_instructions_no_longer_mention_old_update_method(self):
         self.assertNotIn("update_ratecon_document_status()", self.instructions)

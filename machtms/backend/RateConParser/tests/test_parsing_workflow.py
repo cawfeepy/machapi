@@ -24,7 +24,6 @@ from machtms.backend.auth.models import Organization, OrganizationUser, UserProf
 from machtms.backend.RateConParser.models import (
     ParsingSession,
     RateConDocument,
-    ParsedRateCon,
     DocumentStatus,
     SessionStatus,
 )
@@ -184,9 +183,9 @@ class MultiDocumentWorkflowTests(TransactionTestCase):
 
         return results
 
-    def _print_load_details(self, doc, parsed, doc_time=None):
+    def _print_load_details(self, doc, doc_time=None):
         """Pretty-print load information for a single parsed document."""
-        load = parsed.load
+        load = doc.load
         print(f"\n  {'='*56}")
         print(f"  Document: {doc.original_filename}")
         if doc_time is not None:
@@ -336,19 +335,11 @@ class MultiDocumentWorkflowTests(TransactionTestCase):
         # 5. Collect final results
         doc_results = []
         for filename, doc_id, s3_key in upload_info:
-            doc = RateConDocument.objects.get(pk=doc_id)
+            doc = RateConDocument.objects.select_related('load').get(pk=doc_id)
             doc_time = doc_finish_times.get(doc_id)
 
-            load_id = None
-            reference = None
-            parsed = None
-            try:
-                parsed = ParsedRateCon.objects.get(document=doc)
-                if parsed.load:
-                    load_id = parsed.load.pk
-                    reference = parsed.load.reference_number
-            except ParsedRateCon.DoesNotExist:
-                pass
+            load_id = doc.load_id
+            reference = doc.load.reference_number if doc.load else None
 
             doc_results.append({
                 'filename': filename,
@@ -358,7 +349,6 @@ class MultiDocumentWorkflowTests(TransactionTestCase):
                 'load_id': load_id,
                 'reference': reference,
                 'doc': doc,
-                'parsed': parsed,
             })
 
         # 6. Assertions
@@ -370,12 +360,8 @@ class MultiDocumentWorkflowTests(TransactionTestCase):
                 f"{result['status']}. Error: {result['doc'].error_message}",
             )
             self.assertIsNotNone(
-                result['parsed'],
-                f"ParsedRateCon missing for {result['filename']}",
-            )
-            self.assertIsNotNone(
-                result['parsed'].load,
-                f"ParsedRateCon.load should not be null for "
+                result['doc'].load,
+                f"RateConDocument.load should not be null for "
                 f"{result['filename']}",
             )
 
@@ -391,10 +377,7 @@ class MultiDocumentWorkflowTests(TransactionTestCase):
         test_name = f"Multi-Document Workflow ({mode_label}, {mode})"
 
         for result in doc_results:
-            if result['parsed']:
-                self._print_load_details(
-                    result['doc'], result['parsed'], result['time'],
-                )
+            self._print_load_details(result['doc'], result['time'])
 
         self._print_summary_table(
             test_name, use_raw_text, mode, total_time, doc_results,

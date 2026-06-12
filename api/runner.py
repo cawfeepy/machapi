@@ -8,7 +8,6 @@ RabbitMQ, and Redis containers for integration testing.
 import os
 import subprocess
 import sys
-import threading
 import time
 from typing import Any
 
@@ -52,6 +51,7 @@ class TestContainerRunner(DiscoverRunner):
         self._original_celery_result_backend: str | None = None
         self._original_redis_url: str | None = None
         self.celery_worker_process: subprocess.Popen | None = None
+        self._celery_log_file = None
 
     def setup_test_environment(self, **kwargs: Any) -> None:
         """
@@ -273,24 +273,16 @@ class TestContainerRunner(DiscoverRunner):
         print(f"  -> Worker POSTGRES_HOST: {worker_env.get('POSTGRES_HOST')}")
         print(f"  -> Worker POSTGRES_PORT: {worker_env.get('POSTGRES_PORT')}")
 
+        log_path = os.path.join(settings.BASE_DIR, 'machtms', 'logs', 'celery.txt')
+        self._celery_log_file = open(log_path, 'w')
+        print(f"  -> Celery worker logs: {log_path}")
+
         self.celery_worker_process = subprocess.Popen(
             cmd,
             env=worker_env,
-            stdout=subprocess.PIPE,
+            stdout=self._celery_log_file,
             stderr=subprocess.STDOUT,
         )
-
-        # Stream worker output on a daemon thread
-        def _stream_output(proc):
-            for line in iter(proc.stdout.readline, b''):
-                print(f"[celery] {line.decode().rstrip()}")
-
-        output_thread = threading.Thread(
-            target=_stream_output,
-            args=(self.celery_worker_process,),
-            daemon=True,
-        )
-        output_thread.start()
 
         # Wait briefly and verify process is alive
         time.sleep(3)
@@ -317,6 +309,10 @@ class TestContainerRunner(DiscoverRunner):
                 self.celery_worker_process.wait()
                 print("  -> Celery worker killed")
             self.celery_worker_process = None
+
+        if self._celery_log_file is not None:
+            self._celery_log_file.close()
+            self._celery_log_file = None
 
     def _cleanup_containers(self) -> None:
         """Stop and clean up all containers."""

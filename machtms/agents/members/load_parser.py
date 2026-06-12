@@ -1,7 +1,9 @@
 from agno.agent import Agent
+from agno.models.openai import OpenAIChat
 
 load_parser = Agent(
     name="Load Parser",
+    model=OpenAIChat(id="gpt-5.4-nano"),
     role="Parses natural language load creation requests into structured data",
     instructions=[
         "You are a load creation parser. Your job is to extract structured information "

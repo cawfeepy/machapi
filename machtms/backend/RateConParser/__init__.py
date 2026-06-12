@@ -3,7 +3,6 @@ from .models import (
     DocumentStatus,
     ParsingSession,
     RateConDocument,
-    ParsedRateCon,
 )
 
 __all__ = [
@@ -11,5 +10,4 @@ __all__ = [
     'DocumentStatus',
     'ParsingSession',
     'RateConDocument',
-    'ParsedRateCon',
 ]

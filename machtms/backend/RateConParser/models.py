@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import models
 from django.utils import timezone
 from machtms.core.base.models import TMSModel
@@ -28,6 +30,7 @@ class ParsingSession(TMSModel):
         choices=SessionStatus.choices,
         default=SessionStatus.UPLOADING,
     )
+    is_hidden = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -102,6 +105,14 @@ class RateConDocument(TMSModel):
     error_message = models.TextField(blank=True)
     celery_task_id = models.CharField(max_length=255, blank=True)
     processed_at = models.DateTimeField(null=True, blank=True)
+    load = models.ForeignKey(
+        'machtms.Load',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    classification_passed = models.BooleanField(null=True, default=None)
+    classification_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -112,28 +123,33 @@ class RateConDocument(TMSModel):
         return f"RateConDocument {self.pk} ({self.original_filename})"
 
 
-class ParsedRateCon(TMSModel):
-    """Stores the parsed output from a rate confirmation document."""
+class PresignedURLEntryPointStatus(models.TextChoices):
+    ORPHANED  = 'orphaned',  'Orphaned'
+    PROCESSED = 'processed', 'Processed'
 
-    document = models.OneToOneField(
-        RateConDocument,
-        on_delete=models.CASCADE,
-        related_name='parsed_content',
+
+class PresignedURLEntryPoint(TMSModel):
+    """Lightweight pre-session record for tracking presigned upload slots.
+
+    Created before the S3 upload happens so that if the user navigates away
+    after uploading to S3 but before creating a session, the server can
+    recover ('orphan-check') and auto-create sessions for uploaded files.
+    """
+
+    presigned_url = models.TextField()
+    s3_key        = models.TextField()
+    filename      = models.TextField()
+    expiration    = models.DateTimeField()
+    status        = models.CharField(
+        max_length=20,
+        choices=PresignedURLEntryPointStatus.choices,
+        default=PresignedURLEntryPointStatus.ORPHANED,
     )
-    raw_text = models.TextField(blank=True)
-    structured_data = models.JSONField(null=True, blank=True)
-    load = models.ForeignKey(
-        'machtms.Load',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-    )
-    classification_passed = models.BooleanField(default=True)
-    classification_reason = models.TextField(blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at    = models.DateTimeField(default=timezone.now)
+    updated_at    = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'machtms'
 
     def __str__(self):
-        return f"ParsedRateCon for Document {self.document_id}"
+        return f"PresignedURLEntryPoint {self.pk} ({self.filename}, {self.status})"

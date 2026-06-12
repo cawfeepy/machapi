@@ -1,21 +1,23 @@
 import logging
+import logging
+import os
+import subprocess
+import tempfile
 import uuid
 from datetime import datetime, timedelta
 from io import BytesIO
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-import pymupdf
 from celery import shared_task, group
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from .models import (
     ParsingSession,
     RateConDocument,
-    ParsedRateCon,
     DocumentStatus,
     SessionStatus,
 )
@@ -23,6 +25,8 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 PT = ZoneInfo("America/Los_Angeles")
+
+STUCK_PROCESSING_MINUTES = 15
 
 TRAILER_TYPE_MAP = {
     '53': 'LARGE_53',
@@ -89,7 +93,7 @@ def _get_suggested_action(organization, address_id: int) -> str | None:
 
 
 def create_load_from_ratecon_data(parsed_data, organization, ratecon_document_id: int):
-    """Create a Load from parsed rate confirmation data without using an LLM.
+    """Create a Load from parsed rate confirmation data.
 
     Args:
         parsed_data: ParsedRateConData instance with extracted fields.
@@ -191,26 +195,38 @@ def create_load_from_ratecon_data(parsed_data, organization, ratecon_document_id
 
     load = serializer.save()
 
-    # 5. Link to ParsedRateCon
-    try:
-        parsed = ParsedRateCon.objects.get(document_id=ratecon_document_id)
-        parsed.load_id = load.pk
-        parsed.save(update_fields=['load_id'])
-    except ParsedRateCon.DoesNotExist:
-        pass
+    # 5. Link load to document
+    doc = RateConDocument.objects.get(pk=ratecon_document_id)
+    doc.load = load
+    doc.save(update_fields=['load_id', 'updated_at'])
 
     logger.info(f"Created load {load.pk} (ref: {load.reference_number}) from ratecon doc {ratecon_document_id}")
     return load
 
 
 def extract_text_from_pdf(file_buffer: BytesIO) -> str:
-    """Extract text from a PDF file buffer using pymupdf."""
-    doc = pymupdf.open(stream=file_buffer.read(), filetype="pdf")
-    text_parts = []
-    for page in doc:
-        text_parts.append(page.get_text())
-    doc.close()
-    return "\n".join(text_parts)
+    """Extract text from a PDF file buffer using LiteParse CLI."""
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_file:
+        temp_file.write(file_buffer.read())
+        temp_file_path = temp_file.name
+    
+    try:
+        result = subprocess.run(
+            ["lit", "parse", temp_file_path, "-q"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"LiteParse failed: {e.stderr}") from e
+    except FileNotFoundError:
+        raise RuntimeError("LiteParse CLI not found. Make sure 'lit' is installed and available on PATH.") from None
+    finally:
+        try:
+            os.unlink(temp_file_path)
+        except Exception:
+            pass  # Best effort cleanup
 
 
 def send_pdf_url_to_agent(s3_key: str, agent, session_id: str, dependencies: dict):
@@ -240,12 +256,12 @@ def process_single_document(document_id: int, use_raw_text: bool = True):
        generates a presigned URL for direct PDF input (use_raw_text=False)
     2. Calls the rate_con_processor agent
     3. Parses agent response
-    4. Creates ParsedRateCon record
+    4. Stores classification on the document
     5. Updates document status
 
     Args:
         document_id: PK of the RateConDocument to process.
-        use_raw_text: If True (default), download PDF and extract text via pymupdf.
+        use_raw_text: If True (default), download PDF and extract text via LiteParse.
             If False, send the PDF directly to the agent via a presigned S3 URL.
     """
     from machtms.core.utils import s3_utils
@@ -304,15 +320,10 @@ def process_single_document(document_id: int, use_raw_text: bool = True):
 
         parsed_data = response.content  # ParsedRateConData instance
 
-        # Create ParsedRateCon record
-        ParsedRateCon.objects.create(
-            organization=organization,
-            document=doc,
-            raw_text=parsed_data.model_dump_json(),
-            structured_data=parsed_data.model_dump(),
-            classification_passed=(parsed_data.classification == 'PASS'),
-            classification_reason=parsed_data.classification_reason,
-        )
+        # Store classification on the document
+        doc.classification_passed = (parsed_data.classification == 'PASS')
+        doc.classification_reason = parsed_data.classification_reason
+        doc.save(update_fields=['classification_passed', 'classification_reason', 'updated_at'])
 
         if parsed_data.classification == 'PASS':
             try:
@@ -388,54 +399,105 @@ def process_session_async(session_id: int, max_workers: int = 5, use_raw_text: b
         job.apply_async()
 
 
-@shared_task
-def process_document_worker(session_id: int, use_raw_text: bool = True):
-    """Worker for parallel processing mode.
+def _claim_and_process(session, use_raw_text: bool, include_stuck: bool = False):
+    """Claim and process documents for a session.
 
-    Claims and processes PENDING documents one at a time using
-    SELECT FOR UPDATE SKIP LOCKED.
+    Args:
+        session: The ParsingSession instance.
+        use_raw_text: Passed through to process_single_document.
+        include_stuck: If True, also claim PROCESSING docs stuck beyond
+            STUCK_PROCESSING_MINUTES (rescue mode).
     """
-    session = ParsingSession.objects.get(pk=session_id)
-
     while True:
         with transaction.atomic():
-            doc = (
-                RateConDocument.objects
-                .select_for_update(skip_locked=True)
-                .filter(session=session, status=DocumentStatus.PENDING)
-                .first()
-            )
+            qs = RateConDocument.objects.select_for_update(skip_locked=True)
+
+            if include_stuck:
+                stuck_cutoff = timezone.now() - timedelta(minutes=STUCK_PROCESSING_MINUTES)
+                doc = qs.filter(
+                    Q(status=DocumentStatus.PENDING) |
+                    Q(status=DocumentStatus.PROCESSING, updated_at__lt=stuck_cutoff),
+                    session=session,
+                ).first()
+            else:
+                doc = qs.filter(session=session, status=DocumentStatus.PENDING).first()
+
             if doc is None:
                 break
             doc.status = DocumentStatus.PROCESSING
             doc.save(update_fields=['status', 'updated_at'])
 
-        # Process outside the transaction (LLM call is long-running)
         process_single_document(doc.pk, use_raw_text=use_raw_text)
 
     session.recompute_status()
 
 
-@shared_task
-def cleanup_stale_uploads():
-    """Periodic cleanup of documents stuck in UPLOADING state for more than 1 hour."""
-    cutoff = timezone.now() - timedelta(hours=1)
-    stale_qs = RateConDocument.objects.filter(
-        status=DocumentStatus.UPLOADING,
-        created_at__lt=cutoff,
-    )
-    # Capture affected session IDs before the bulk update
-    session_ids = set(stale_qs.values_list('session_id', flat=True))
-    count = stale_qs.update(
-        status=DocumentStatus.FAILED,
-        error_message='Upload timed out.',
-    )
-    for sid in session_ids:
-        try:
-            session = ParsingSession.objects.get(pk=sid)
-            session.recompute_status()
-        except ParsingSession.DoesNotExist:
-            pass
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
+    task_reject_on_worker_lost=True,
+)
+def process_document_worker(self, session_id: int, use_raw_text: bool = True):
+    """Worker for parallel processing mode.
 
-    if count > 0:
-        logger.info(f"Cleaned up {count} stale upload(s).")
+    Claims and processes PENDING documents one at a time using
+    SELECT FOR UPDATE SKIP LOCKED.
+
+    Retries up to 3 times (60 s delay) on unexpected exception.
+    acks_late + task_reject_on_worker_lost ensure the task is re-queued
+    if the worker process is hard-killed (OOM, SIGKILL) before it finishes.
+    Retries are routed to the 'rescue' queue to isolate retry traffic
+    from the main processing queue.
+    """
+    try:
+        session = ParsingSession.objects.get(pk=session_id)
+        _claim_and_process(session, use_raw_text)
+    except Exception as exc:
+        raise self.retry(exc=exc, queue='rescue')
+
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    acks_late=True,
+    task_reject_on_worker_lost=True,
+    queue='rescue',
+)
+def rescue_document_worker(self, session_id: int, use_raw_text: bool = True):
+    """Rescue worker that claims both PENDING and stuck PROCESSING documents.
+
+    Routes to the 'rescue' queue by default (set in the decorator).
+    A document is considered stuck if it has been in PROCESSING status
+    for longer than STUCK_PROCESSING_MINUTES without being updated.
+
+    Retries up to 3 times (60 s delay) on unexpected exception.
+    """
+    try:
+        session = ParsingSession.objects.get(pk=session_id)
+        _claim_and_process(session, use_raw_text, include_stuck=True)
+    except Exception as exc:
+        raise self.retry(exc=exc, queue='rescue')
+
+
+@shared_task
+def run_orphan_check_for_org(org_id: int):
+    """Process orphaned presigned-URL entry points for a single organization.
+
+    Triggered by the frontend's orphan-check endpoint when it suspects the user
+    uploaded files to S3 but did not complete the session-creation flow.
+    Creates a new ParsingSession for any unexpired orphaned entrypoints and
+    auto-dispatches processing; deletes expired ones (with best-effort S3 cleanup).
+    """
+    from machtms.backend.auth.models import Organization
+    from machtms.backend.RateConParser.views import _process_orphaned_entrypoints
+
+    try:
+        org = Organization.objects.get(pk=org_id)
+    except Organization.DoesNotExist:
+        logger.warning(f"run_orphan_check_for_org: organization {org_id} not found, skipping.")
+        return
+
+    _process_orphaned_entrypoints(organization=org)

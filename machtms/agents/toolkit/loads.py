@@ -453,15 +453,15 @@ class LoadToolkit(Toolkit):
 
         load = serializer.save()
 
-        # Auto-link load to ParsedRateCon if ratecon_id is in the run context
+        # Auto-link load to RateConDocument if ratecon_id is in the run context
         ratecon_id = run_context.dependencies.get("ratecon_id")
         if ratecon_id:
-            from machtms.backend.RateConParser.models import ParsedRateCon
+            from machtms.backend.RateConParser.models import RateConDocument
             try:
-                parsed = ParsedRateCon.objects.get(document_id=ratecon_id)
-                parsed.load_id = load.pk
-                parsed.save(update_fields=['load_id'])
-            except ParsedRateCon.DoesNotExist:
+                doc = RateConDocument.objects.get(pk=ratecon_id)
+                doc.load_id = load.pk
+                doc.save(update_fields=['load_id', 'updated_at'])
+            except RateConDocument.DoesNotExist:
                 pass
 
         pt = ZoneInfo("America/Los_Angeles")

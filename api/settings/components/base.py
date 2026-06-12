@@ -1,6 +1,9 @@
 import logging
+import warnings
 from django.conf.global_settings import DATETIME_INPUT_FORMATS
 from machtms.core.envctrl import env
+
+warnings.filterwarnings('ignore', message='.*received a naive datetime.*')
 
 L = logging.getLogger(__name__)
 
@@ -34,6 +37,14 @@ if IS_SECURE:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': (
+        'djangorestframework_camel_case.render.CamelCaseJSONRenderer',
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
+    ),
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',),
     'DEFAULT_AUTHENTICATION_CLASSES': ['machtms.core.auth.authentication.TMSAuthentication',],
     'DEFAULT_PERMISSION_CLASSES': ['machtms.core.auth.permissions.TMSCustomPermission',],

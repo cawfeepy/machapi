@@ -2,7 +2,7 @@
 
 ## So, what are we actually building here?
 
-Imagine you are a trucking company. A broker sends you a Rate Confirmation PDF -- a document that says "pick up at warehouse A, deliver to warehouse B, we will pay you $X." Right now, a human reads that PDF, squints at the fonts, and manually types the load details into the TMS. What if we could hand the PDF to an AI agent and get a fully-formed `Load` record back, with legs, stops, addresses, and customer links already wired up?
+Imagine you are a trucking company. A broker sends you a Rate Confirmation PDF — a document that says "pick up at warehouse A, deliver to warehouse B, we will pay you $X." Right now, a human reads that PDF, squints at the fonts, and manually types the load details into the TMS. What if we could hand the PDF to an AI agent and get a fully-formed `Load` record back, with legs, stops, addresses, and customer links already wired up?
 
 That is what the RateCon Parsing Pipeline does. It accepts one or more PDF uploads, runs them through an AI-powered extraction and classification step, creates structured `Load` records in the database, and reports the results back to the frontend.
 
@@ -13,15 +13,15 @@ But here is the interesting part: **the AI agents are not in charge of anything.
 ## Table of Contents
 
 - [Pipeline Overview](#pipeline-overview)
-- [API Endpoints -- What Does the Frontend Call?](#api-endpoints----what-does-the-frontend-call)
+- [API Endpoints — What Does the Frontend Call?](#api-endpoints--what-does-the-frontend-call)
+- [The Orphan Recovery Safety Net](#the-orphan-recovery-safety-net)
 - [The Status State Machine](#the-status-state-machine)
-- [Task Responsibilities -- Who Is Really in Charge?](#task-responsibilities----who-is-really-in-charge)
+- [Task Responsibilities — Who Is Really in Charge?](#task-responsibilities--who-is-really-in-charge)
 - [The Agent Reliability Problem](#the-agent-reliability-problem)
 - [The PARSED Invariant](#the-parsed-invariant)
-- [Load Linking -- Why Not Let the Agent Do It?](#load-linking----why-not-let-the-agent-do-it)
-- [Processing Modes -- Sync vs. Async](#processing-modes----sync-vs-async)
+- [Processing Modes — Sync vs. Async](#processing-modes--sync-vs-async)
 - [Data Models](#data-models)
-- [The AI Agents](#the-ai-agents)
+- [The AI Agent](#the-ai-agent)
 - [End-to-End Testing](#end-to-end-testing)
 - [The Teardown Order Bug](#the-teardown-order-bug)
 
@@ -32,121 +32,171 @@ But here is the interesting part: **the AI agents are not in charge of anything.
 What does the journey of a PDF look like, from the moment a user drags it into the browser to the moment a `Load` appears in the system?
 
 ```
-Frontend                          Backend (Django)                    Background (Celery)
---------                          ----------------                    -------------------
-1. Create session         --->    ParsingSession created (UPLOADING)
-2. Register document      --->    RateConDocument created (UPLOADING)
-   (get presigned URL)            Presigned S3 URL returned
-3. Upload PDF to S3       --->    (direct S3 PUT via presigned URL)
-4. Confirm upload         --->    Document -> PENDING
-5. Trigger processing     --->    Celery task dispatched
-                                                                      6. Download PDF from S3
-                                                                      7. Extract text (pymupdf)
-                                                                      8. AI Agent #1: classify + extract
-                                                                      9. Create ParsedRateCon record
-                                                                      10. AI Agent #2: create Load
-                                                                      11. Auto-link Load to ParsedRateCon
-                                                                      12. Set document -> PARSED
-6. Poll session/document  --->    Return current status + data
+Frontend                          Backend (Django)                    Background (Celery / S3)
+--------                          ----------------                    ------------------------
+1. Request presigned URLs  --->   Generate S3 PUT URLs
+   (batch, all files)             Create PresignedURLEntryPoint(s)
+                                  (status: ORPHANED)
+                           <---   Return [{id, presigned_url, s3_key}]
+
+2. Upload PDFs to S3       --->   (direct S3 PUT per file — Django not involved)
+
+3. Create session          --->   Create ParsingSession (UPLOADING)
+   (send entrypoint IDs)          Create RateConDocument(s) (PENDING)
+                                  Mark entrypoints PROCESSED
+                           <---   Return {session_id, documents}
+
+4. Trigger processing      --->   Dispatch Celery task → 202 Accepted
+                                                          5. Set session → PROCESSING
+                                                          6. Fan out worker tasks (parallel)
+                                                          7. Each worker claims a PENDING doc
+                                                             (SELECT FOR UPDATE SKIP LOCKED)
+                                                          8. Generate presigned GET URL for PDF
+                                                          9. Send PDF to rate_con_processor agent
+                                                          10. Agent: classify + extract fields
+                                                          11. Store classification on document
+                                                          12. If PASS: create Load
+                                                              link load to document → PARSED
+                                                              If FAIL: → MISCLASSIFIED
+                                                              On error: → FAILED
+                                                          13. recompute_status() on session
+
+5. Poll sessions list      --->   Return up to 8 non-hidden sessions
+6. Poll session detail     --->   Return session + all nested documents
+7. Hide session            --->   Mark session is_hidden=True
 ```
 
-Every numbered step has a clear owner. The frontend owns steps 1-5 and 6 (polling). The Celery task code owns steps 6-12. The AI agents are called *within* steps 8 and 10, but they do not control the flow. They are tools, not managers.
+Every numbered step has a clear owner. The frontend owns steps 1–4 (upload flow) and 5–7 (polling and cleanup). The Celery task code owns steps 5–13 in the background. The AI agent is called within step 10, but it does not control flow. It is a tool, not a manager.
 
 ---
 
-## API Endpoints -- What Does the Frontend Call?
+## API Endpoints — What Does the Frontend Call?
 
-All endpoints live under the `ratecon/` URL namespace. The frontend interacts with five endpoints in a specific sequence.
+All endpoints live under the `ratecon/` URL namespace.
 
-### Step 1: Create a Session
+### Step 1: Request Presigned Upload URLs (Batch)
 
 ```
-POST /ratecon/sessions/
+POST /ratecon/presigned-urls/
 ```
 
-Creates a `ParsingSession` scoped to the user's organization. The session groups multiple document uploads into a single batch. Returns a `session_id`.
+The frontend sends the filenames and MIME types for all files it wants to upload **in a single request**. The backend generates a presigned S3 PUT URL for each file, creates a `PresignedURLEntryPoint` record (status: `ORPHANED`), and returns everything.
 
-**Request body:** empty (or `{}`)
+Why `ORPHANED`? Because at this moment the files have not yet been uploaded to S3, and no session exists yet. If the user navigates away after this step, the orphan recovery mechanism can rescue those files.
 
-**Response (201):**
+**Request body:**
 ```json
 {
-  "session_id": 42
+  "files": [
+    { "filename": "ratecon_abc.pdf", "mime_type": "application/pdf" },
+    { "filename": "ratecon_def.pdf", "mime_type": "application/pdf" }
+  ]
 }
 ```
 
-### Step 2: Register a Document (Get a Presigned URL)
+**Response (201):**
+```json
+[
+  {
+    "id": 1,
+    "presigned_url": "https://s3.amazonaws.com/...",
+    "s3_key": "a1b2c3d4-e5f6-7890-abcd-ef1234567890.pdf",
+    "filename": "ratecon_abc.pdf",
+    "expiration": "2026-03-01T10:15:00Z",
+    "status": "orphaned"
+  },
+  {
+    "id": 2,
+    "presigned_url": "https://s3.amazonaws.com/...",
+    "s3_key": "b2c3d4e5-f6a7-8901-bcde-f12345678901.pdf",
+    "filename": "ratecon_def.pdf",
+    "expiration": "2026-03-01T10:15:00Z",
+    "status": "orphaned"
+  }
+]
+```
+
+What happens if two files have the same filename? The backend appends a counter suffix: `ratecon_abc.pdf`, `ratecon_abc-2.pdf`, and so on. Deduplication is scoped within the batch.
+
+The presigned URLs expire after **15 minutes**.
+
+### Step 2: Upload PDFs to S3
+
+For each file, the frontend performs a `PUT` request directly to the `presigned_url` with the PDF bytes. This is a browser-to-S3 operation; Django is not involved.
+
+### Step 3: Create a Session from Uploaded Entrypoints
 
 ```
-POST /ratecon/documents/upload/
+POST /ratecon/sessions/from-presigned/
 ```
 
-Why not upload the file directly to Django? Because PDFs can be large, and we do not want to tie up a Django worker streaming bytes. Instead, the backend generates a presigned S3 URL, and the frontend uploads directly to S3.
+Once the S3 uploads are complete, the frontend tells the backend which entrypoint IDs were successfully uploaded. The backend:
+
+1. Creates a `ParsingSession` (status: `UPLOADING`)
+2. Creates a `RateConDocument` for each entrypoint (status: `PENDING`)
+3. Marks the `PresignedURLEntryPoint` records as `PROCESSED`
 
 **Request body:**
+```json
+{
+  "entrypoint_ids": [1, 2]
+}
+```
+
+**Response (201):**
 ```json
 {
   "session_id": 42,
-  "filename": "ratecon_ABC123.pdf",
-  "mime_type": "application/pdf"
+  "documents": [
+    {
+      "id": 10,
+      "session": 42,
+      "status": "pending",
+      "original_filename": "ratecon_abc.pdf",
+      "s3_key": "a1b2c3d4-e5f6-7890-abcd-ef1234567890.pdf",
+      ...
+    },
+    {
+      "id": 11,
+      "session": 42,
+      "status": "pending",
+      "original_filename": "ratecon_def.pdf",
+      "s3_key": "b2c3d4e5-f6a7-8901-bcde-f12345678901.pdf",
+      ...
+    }
+  ]
 }
 ```
 
-**Response (201):**
-```json
-{
-  "document_id": 99,
-  "original_filename": "ratecon_ABC123.pdf",
-  "s3_key": "a1b2c3d4-e5f6-7890-abcd-ef1234567890.pdf",
-  "presigned_url": "https://s3.amazonaws.com/..."
-}
-```
-
-What happens if two documents have the same filename? The backend appends a counter suffix: `ratecon_ABC123-1.pdf`, `ratecon_ABC123-2.pdf`, and so on. Duplicate detection is scoped to the organization.
-
-### Step 3: Upload to S3
-
-The frontend performs a `PUT` request directly to the `presigned_url` with the PDF bytes. This is a browser-to-S3 operation; Django is not involved.
-
-### Step 4: Confirm Upload Complete
+### Step 4: Trigger Processing
 
 ```
-POST /ratecon/documents/upload-complete/
+POST /ratecon/sessions/<session_id>/process-pdf/
 ```
 
-Transitions the document from `UPLOADING` to `PENDING`. Optionally records the file size.
+Kicks off the Celery pipeline for all `PENDING` documents in the session. Uses direct PDF mode: the worker generates a presigned GET URL for the S3 object and sends the PDF straight to the AI agent (no text extraction step).
+
+> **SDK operation ID:** `rateConProcessSessionPdf`
+>
+> **Alternative processing endpoints** (see URL Routing Summary below):
+> - `rateConProcessSessionTextMode` — text-extraction mode via `POST /ratecon/sessions/<id>/process/`
+> - `rateConProcessDocumentPdfMode` — per-document retry via `POST /ratecon/documents/<id>/process-pdf/`
 
 **Request body:**
 ```json
 {
-  "document_id": 99,
-  "file_size": 245760
+  "mode": "async"
 }
 ```
 
-### Step 5: Trigger Processing
-
-```
-POST /ratecon/sessions/<session_id>/process/
-```
-
-Kicks off the Celery pipeline for all `PENDING` documents in the session.
-
-**Request body:**
-```json
-{
-  "mode": "sync"
-}
-```
-
-`mode` can be `"sync"` (sequential processing) or `"async"` (parallel workers). See [Processing Modes](#processing-modes----sync-vs-async) below.
+`mode` can be `"sync"` (sequential) or `"async"` (parallel workers). See [Processing Modes](#processing-modes--sync-vs-async) below. For production use, always use `"async"`.
 
 **Response (202):**
 ```json
 {
   "session_id": 42,
-  "mode": "sync",
-  "message": "Processing started for 3 document(s)."
+  "mode": "async",
+  "message": "PDF processing started for 2 document(s)."
 }
 ```
 
@@ -156,9 +206,17 @@ After triggering processing, the frontend polls for status:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /ratecon/sessions/list/` | List all sessions for the organization |
+| `GET /ratecon/sessions/list/` | List up to 8 non-hidden sessions for the org, newest first |
 | `GET /ratecon/sessions/<session_id>/` | Session detail with nested document statuses |
-| `GET /ratecon/documents/<document_id>/` | Document detail with parsed content |
+| `GET /ratecon/documents/<document_id>/` | Single document detail |
+
+### Session Management
+
+```
+POST /ratecon/sessions/<session_id>/hide/
+```
+
+Hides a completed session from the session list. The session and its documents remain in the database but `is_hidden` is set to `True` so they no longer appear in `GET /ratecon/sessions/list/`.
 
 ### URL Routing Summary
 
@@ -166,15 +224,47 @@ All routes are defined in `machtms/backend/RateConParser/urls.py`:
 
 ```python
 urlpatterns = [
-    path('ratecon/sessions/',                          CreateSessionView),
-    path('ratecon/sessions/list/',                     SessionListView),
-    path('ratecon/sessions/<int:session_id>/',         SessionDetailView),
-    path('ratecon/sessions/<int:session_id>/process/', ProcessSessionView),
-    path('ratecon/documents/upload/',                  DocumentUploadView),
-    path('ratecon/documents/upload-complete/',          DocumentUploadCompleteView),
-    path('ratecon/documents/<int:document_id>/',       DocumentDetailView),
+    # Presigned URL flow
+    path('ratecon/presigned-urls/',              PresignedURLEntryPointView),
+    path('ratecon/sessions/from-presigned/',      CreateSessionFromPresignedView),
+
+    # Processing
+    path('ratecon/sessions/<id>/process/',        ProcessSessionView),       # text extraction mode  | SDK: rateConProcessSessionTextMode
+    path('ratecon/sessions/<id>/process-pdf/',    ProcessSessionPdfView),    # direct PDF mode (preferred)  | SDK: rateConProcessSessionPdf
+    path('ratecon/documents/<id>/process-pdf/',   ProcessDocumentPdfView),   # single-doc retry  | SDK: rateConProcessDocumentPdfMode
+
+    # Polling
+    path('ratecon/sessions/list/',                SessionListView),
+    path('ratecon/sessions/<id>/',                SessionDetailView),
+    path('ratecon/documents/<id>/',               DocumentDetailView),
+
+    # Management
+    path('ratecon/sessions/<id>/hide/',           HideSessionView),
+    path('ratecon/orphaned/pre-check/',           OrphanedDocumentCheckView),
 ]
 ```
+
+---
+
+## The Orphan Recovery Safety Net
+
+What if the user uploads files to S3 in step 2 but then closes the browser tab before completing step 3? The S3 objects exist, the `PresignedURLEntryPoint` records are still `ORPHANED`, but no session was ever created.
+
+The frontend can call:
+
+```
+POST /ratecon/orphaned/pre-check/
+```
+
+This dispatches a Celery task (`run_orphan_check_for_org`) scoped to the requesting organization. The task:
+
+1. **Expired + orphaned** — deletes the S3 object (best-effort) and the entrypoint record.
+2. **Unexpired + orphaned** — creates a new `ParsingSession`, attaches the uploaded files as `RateConDocument` records (status: `PENDING`), marks entrypoints `PROCESSED`, and auto-dispatches `process_session_async`.
+3. **Already processed** — deletes the stale entrypoint records (session already exists).
+
+The response is always `202 Accepted`. The frontend should then poll `GET /ratecon/sessions/list/` to discover the newly created session, if any.
+
+This endpoint is most useful to call on page load, before showing the upload UI, so that any files from a previous interrupted session appear automatically.
 
 ---
 
@@ -185,33 +275,30 @@ urlpatterns = [
 What states can a document be in, and what transitions are valid?
 
 ```
-                         upload-complete
-    UPLOADING  ───────────────────────>  PENDING
-        |                                   |
-        |  (stale cleanup)                  |  process_single_document()
-        v                                   v
-      FAILED                            PROCESSING
-                                       /    |     \
-                   classification      /     |      \  exception
-                   == 'FAIL'          /      |       \
-                                     v       v        v
-                             MISCLASSIFIED  PARSED   FAILED
+   PENDING
+      |
+      |  process_single_document() called
+      v
+  PROCESSING
+   /   |    \
+  /    |     \  exception
+ v     v      v
+PARSED  MISCLASSIFIED  FAILED
 ```
 
 | Status | What it means |
 |---|---|
-| `UPLOADING` | Document record created, waiting for S3 upload confirmation |
-| `PENDING` | Upload confirmed, waiting for processing to begin |
-| `PROCESSING` | Celery task has picked up the document and is working on it |
-| `PARSED` | Fully processed: `ParsedRateCon` record AND linked `Load` exist |
+| `PENDING` | Documents start here after session creation; waiting for a Celery worker to pick them up |
+| `PROCESSING` | A Celery worker has claimed this document and is working on it |
+| `PARSED` | Successfully processed: classification passed AND a linked `Load` exists |
 | `MISCLASSIFIED` | The AI determined this is not a valid rate confirmation |
-| `FAILED` | Something went wrong (extraction, agent error, load creation error) |
+| `FAILED` | Something went wrong (agent error, load creation error, etc.) |
 
 > **Key rule:** `PARSED`, `MISCLASSIFIED`, and `FAILED` are *terminal* states. Once a document reaches one of these, it stays there.
 
-### Session Status
+There is also an `UPLOADING` document status defined in the model for legacy compatibility, but in the current presigned-URL flow, documents are created directly as `PENDING`.
 
-What about the session that groups multiple documents?
+### Session Status
 
 ```python
 class SessionStatus(models.TextChoices):
@@ -222,15 +309,15 @@ class SessionStatus(models.TextChoices):
     FAILED           = 'failed'
 ```
 
-Session status is *derived*, not directly set by the pipeline. After each document finishes, the task calls `session.recompute_status()`:
+Session status is *derived*, not directly set by the pipeline (except the initial `UPLOADING` → `PROCESSING` transition when a Celery task starts). After each document finishes, the task calls `session.recompute_status()`:
 
-- **COMPLETED** -- All documents are either `PARSED` or `MISCLASSIFIED` (no failures).
-- **PARTIALLY_FAILED** -- Some documents succeeded and some failed.
-- **FAILED** -- Every document failed.
+- **COMPLETED** — All documents are either `PARSED` or `MISCLASSIFIED` (no failures).
+- **PARTIALLY_FAILED** — Some documents succeeded (`PARSED` or `MISCLASSIFIED`) and some `FAILED`.
+- **FAILED** — Every document failed.
 
 ---
 
-## Task Responsibilities -- Who Is Really in Charge?
+## Task Responsibilities — Who Is Really in Charge?
 
 Here is the core question: **Who decides when a document's status changes?**
 
@@ -240,9 +327,9 @@ Look at `process_single_document()` in `machtms/backend/RateConParser/tasks.py`.
 
 ```python
 @shared_task
-def process_document(document_id: int):
+def process_document(document_id: int, use_raw_text: bool = True):
     """Celery task wrapper around process_single_document."""
-    process_single_document(document_id)
+    process_single_document(document_id, use_raw_text=use_raw_text)
 ```
 
 Inside `process_single_document()`, every status transition is explicit:
@@ -252,12 +339,18 @@ Inside `process_single_document()`, every status transition is explicit:
 doc.status = DocumentStatus.PROCESSING
 doc.save(update_fields=['status', 'updated_at'])
 
-# ... call AI agent #1 (rate_con_processor) ...
-# ... create ParsedRateCon record ...
+# Call agent (via presigned URL in PDF mode)
+response = send_pdf_url_to_agent(s3_key=doc.s3_key, agent=rate_con_processor, ...)
+parsed_data = response.content  # ParsedRateConData instance
+
+# Store classification result on the document
+doc.classification_passed = (parsed_data.classification == 'PASS')
+doc.classification_reason = parsed_data.classification_reason
+doc.save(update_fields=['classification_passed', 'classification_reason', 'updated_at'])
 
 if parsed_data.classification == 'PASS':
-    # ... call AI agent #2 (ratecon_load_creator) ...
-    # Load created and linked -- NOW set PARSED
+    create_load_from_ratecon_data(parsed_data, organization, doc.pk)
+    # Load created and linked — NOW set PARSED
     doc.status = DocumentStatus.PARSED
     doc.save(...)
 else:
@@ -265,13 +358,7 @@ else:
     doc.save(...)
 ```
 
-Notice the comment: *"Load created and linked -- NOW set PARSED."* The document is not marked `PARSED` until:
-
-1. The `ParsedRateCon` record exists in the database.
-2. The `ratecon_load_creator` agent has finished executing.
-3. The load has been auto-linked to the `ParsedRateCon` record.
-
-Why is this ordering so important? Read on.
+Notice the comment: *"Load created and linked — NOW set PARSED."* The document is not marked `PARSED` until the load exists and is linked.
 
 ---
 
@@ -279,19 +366,17 @@ Why is this ordering so important? Read on.
 
 What happens when you give an AI agent the power to change database state?
 
-We found out. The `rate_con_processor` agent originally had a `DocumentParsingToolkit` with an `update_document_status` tool. The agent's instructions said something like: "After you finish extracting data, call `update_document_status(status='parsed')`."
+We found out. The original design had the agent calling an `update_document_status` tool after finishing. The agent would call it *on its own initiative*, immediately after extraction, **before** related records were created. From the frontend's perspective, the document was `PARSED`. But when it fetched the document detail, there was no linked `Load`.
 
-**What actually happened:** The AI agent would call `update_document_status(status='parsed')` *on its own initiative*, immediately after extraction, **before** the `ParsedRateCon` record was even created by the task code. From the frontend's perspective, the document was `PARSED`. But when the frontend fetched the document detail, there was no `ParsedRateCon` record, no linked `Load`. The `PARSED` status was a lie.
-
-> **Warning:** AI agents (LLMs) cannot be trusted to manage system state. They will call tools when they feel like it, skip instructions, call things out of order, or call the same tool twice. An LLM following a numbered instruction list will not reliably execute step 8 after step 7. It might skip step 8 entirely. It might do step 8 before step 5.
+> **Warning:** AI agents (LLMs) cannot be trusted to manage system state. They will call tools when they feel like it, skip instructions, call things out of order, or call the same tool twice. An LLM following a numbered instruction list will not reliably execute step 8 after step 7.
 
 **The fix was architectural:**
 
-1. **Remove all state-management tools from the agents.** The `rate_con_processor` agent has zero tools -- it only uses `output_schema` to return structured data. The `ratecon_load_creator` agent has tools for *creating* things (addresses, customers, loads), but no tools for updating document status.
+1. **Remove all state-management tools from the agent.** `rate_con_processor` has zero tools — it only uses `output_schema` to return structured data. No side effects. No database writes.
 
 2. **Make the task code the single source of truth.** All status transitions happen in `process_single_document()`, in a deterministic order that the task code controls completely.
 
-The agents are still valuable -- they do the hard work of understanding PDFs and assembling load payloads. But they are treated like pure functions: data in, data out. The task code handles all side effects.
+The agent is still valuable — it does the hard work of understanding PDFs. But it is treated like a pure function: data in, data out. The task code handles all side effects.
 
 ---
 
@@ -299,130 +384,86 @@ The agents are still valuable -- they do the hard work of understanding PDFs and
 
 This is the most important guarantee in the system:
 
-> **When a document reaches `PARSED` status, it is guaranteed that both a `ParsedRateCon` record AND a linked `Load` (with legs, stops, and addresses) exist in the database.**
+> **When a document reaches `PARSED` status, it is guaranteed that a linked `Load` (with legs, stops, and addresses) exists in the database and is attached to the document via the `load` FK.**
 
-Why does this matter? Because the frontend relies on it. When the frontend sees `PARSED`, it can safely fetch the document detail and display the parsed data and the associated load. If `PARSED` could mean "maybe there is a load, maybe not," the frontend would need defensive checks everywhere.
+Why does this matter? Because the frontend relies on it. When the frontend sees `PARSED`, it can safely fetch the document detail and navigate to the associated load. If `PARSED` could mean "maybe there is a load, maybe not," the frontend would need defensive checks everywhere.
 
-How does the task code enforce this? By controlling the ordering:
+How does the task code enforce this? By controlling the ordering in `process_single_document()`:
 
 ```python
-# Step 1: Create ParsedRateCon record (always, even for MISCLASSIFIED)
-ParsedRateCon.objects.create(
-    organization=organization,
-    document=doc,
-    raw_text=parsed_data.model_dump_json(),
-    structured_data=parsed_data.model_dump(),
-    classification_passed=(parsed_data.classification == 'PASS'),
-    classification_reason=parsed_data.classification_reason,
-)
-
-# Step 2: If classification passed, create the load
 if parsed_data.classification == 'PASS':
     try:
-        ratecon_load_creator.run(creator_prompt, ...)
-        # Step 3: ONLY NOW set PARSED
+        create_load_from_ratecon_data(parsed_data, organization, doc.pk)
+        # ONLY NOW set PARSED
         doc.status = DocumentStatus.PARSED
-        doc.save(...)
+        doc.processed_at = timezone.now()
+        doc.save(update_fields=['status', 'processed_at', 'updated_at'])
     except Exception as load_err:
         # Load creation failed -> FAILED, not PARSED
         doc.status = DocumentStatus.FAILED
-        doc.error_message = f"Parsed OK but load creation failed: ..."
+        doc.error_message = f"Parsed OK but load creation failed: {str(load_err)[:400]}"
         doc.save(...)
 ```
 
-If the load creator agent throws an exception, the document goes to `FAILED` with a descriptive error message. It never reaches `PARSED` in a half-baked state.
+If `create_load_from_ratecon_data()` raises an exception, the document goes to `FAILED` with a descriptive error message. It never reaches `PARSED` in a half-baked state.
+
+The `create_load_from_ratecon_data()` function in `tasks.py` auto-links the load to the document by setting `doc.load = load` internally, so linking is deterministic and never depends on the agent.
 
 ---
 
-## Load Linking -- Why Not Let the Agent Do It?
+## Processing Modes — Sync vs. Async
 
-The `ratecon_load_creator` agent's instructions include this step:
-
-> **8. LINK LOAD TO DOCUMENT:** After the load is created, call `assign_load_to_parsed_ratecon()` with the newly created load ID.
-
-But what if the agent does not follow step 8? What if it creates the load successfully, feels satisfied, and stops? Then the `ParsedRateCon.load` field would be `null`, even though a `Load` exists somewhere in the database with no connection back to the rate con.
-
-**The fix:** The `create_load_from_parsed()` toolkit method now auto-links the load to the `ParsedRateCon` record internally:
-
-```python
-def create_load_from_parsed(self, run_context: RunContext, payload_json: str) -> str:
-    # ... validate, create load via serializer ...
-    load = serializer.save()
-
-    # Auto-link load to ParsedRateCon if ratecon_id is in the run context
-    ratecon_id = run_context.dependencies.get("ratecon_id")
-    if ratecon_id:
-        from machtms.backend.RateConParser.models import ParsedRateCon
-        try:
-            parsed = ParsedRateCon.objects.get(document_id=ratecon_id)
-            parsed.load_id = load.pk
-            parsed.save(update_fields=['load_id'])
-        except ParsedRateCon.DoesNotExist:
-            pass
-
-    # ... return confirmation ...
-```
-
-The `ratecon_id` comes from the `run_context.dependencies` dict, which the task code passes when calling the agent. The agent does not need to do anything special -- the linking happens automatically as a side effect of `create_load_from_parsed()`.
-
-The `assign_load_to_parsed_ratecon()` tool still exists in the `DocumentParsingToolkit` as a fallback (the agent's instructions still mention it), but the system no longer *depends* on the agent calling it. Belt and suspenders.
-
----
-
-## Processing Modes -- Sync vs. Async
-
-What if a session has 20 documents? Do we process them one at a time, or fan out?
+What if a session has many documents? Do we process them one at a time, or fan out?
 
 ### Mode A: Sync (Sequential)
 
 ```python
 @shared_task
-def process_session_sync(session_id: int):
-    """Process all pending documents in a session sequentially."""
+def process_session_sync(session_id: int, use_raw_text: bool = True):
     for doc in pending_docs:
-        process_single_document(doc.pk)
+        process_single_document(doc.pk, use_raw_text=use_raw_text)
     session.recompute_status()
 ```
 
 Simple. Predictable. Slow for large batches.
 
-### Mode B: Async (Parallel Workers)
+### Mode B: Async (Parallel Workers) — Preferred
 
 ```python
 @shared_task
-def process_session_async(session_id: int, max_workers: int = 5):
-    """Process all pending documents in parallel."""
+def process_session_async(session_id: int, max_workers: int = 5, use_raw_text: bool = True):
     job = group(
-        process_document_worker.s(session_id) for _ in range(worker_count)
+        process_document_worker.s(session_id, use_raw_text) for _ in range(worker_count)
     )
     job.apply_async()
 ```
 
-What does each worker do? It runs a loop:
+Up to 5 `process_document_worker` tasks run in parallel. Each worker runs a claim loop:
 
 ```python
-@shared_task
-def process_document_worker(session_id: int):
-    while True:
-        with transaction.atomic():
-            doc = (
-                RateConDocument.objects
-                .select_for_update(skip_locked=True)
-                .filter(session=session, status=DocumentStatus.PENDING)
-                .first()
-            )
-            if doc is None:
-                break
-            doc.status = DocumentStatus.PROCESSING
-            doc.save(update_fields=['status', 'updated_at'])
+while True:
+    with transaction.atomic():
+        doc = (
+            RateConDocument.objects
+            .select_for_update(skip_locked=True)
+            .filter(session=session, status=DocumentStatus.PENDING)
+            .first()
+        )
+        if doc is None:
+            break
+        doc.status = DocumentStatus.PROCESSING
+        doc.save(update_fields=['status', 'updated_at'])
 
-        process_single_document(doc.pk)
-    session.recompute_status()
+    process_single_document(doc.pk, use_raw_text=use_raw_text)
 ```
 
-How do multiple workers avoid processing the same document? Via `SELECT FOR UPDATE SKIP LOCKED`. Each worker atomically claims one `PENDING` document. If another worker already locked a row, it skips to the next one. When no more `PENDING` documents remain, the worker exits.
+How do multiple workers avoid processing the same document? Via `SELECT FOR UPDATE SKIP LOCKED`. Each worker atomically claims one `PENDING` document. When no more `PENDING` documents remain, the worker exits.
 
-Why process outside the transaction? Because the LLM call inside `process_single_document()` is long-running (potentially 30+ seconds). Holding a database transaction open that long would block other queries and risk deadlocks.
+Why process outside the transaction? Because the AI agent call inside `process_single_document()` can take 10–30 seconds. Holding a database transaction open that long would block other queries and risk deadlocks.
+
+### Rescue Workers
+
+Workers are configured with `acks_late=True` and `task_reject_on_worker_lost=True`. If a worker is hard-killed (OOM, SIGKILL) mid-processing, the task is re-queued to the `rescue` queue. A `rescue_document_worker` handles this queue and also claims documents stuck in `PROCESSING` for more than 15 minutes.
 
 ---
 
@@ -430,20 +471,21 @@ Why process outside the transaction? Because the LLM call inside `process_single
 
 ### ParsingSession
 
-The container for a batch upload. Created by the frontend before uploading any documents.
+The container for a batch upload. Created by the backend when the frontend calls `POST /ratecon/sessions/from-presigned/`.
 
 ```python
 class ParsingSession(TMSModel):
     status     = CharField(choices=SessionStatus.choices, default='uploading')
+    is_hidden  = BooleanField(default=False)
     created_at = DateTimeField(default=timezone.now)
     updated_at = DateTimeField(auto_now=True)
 ```
 
 Notable properties:
-- `total_documents` -- count of all child documents
-- `completed_documents` -- count of documents in terminal states
-- `progress` -- percentage complete (0-100)
-- `recompute_status()` -- derives session status from child document statuses
+- `total_documents` — count of all child documents
+- `documents` — nested list of `RateConDocument` objects belonging to this session
+- `progress` — percentage complete (0.0–100.0)
+- `recompute_status()` — derives session status from child document statuses
 
 ### RateConDocument
 
@@ -451,107 +493,103 @@ A single uploaded PDF within a session.
 
 ```python
 class RateConDocument(TMSModel):
-    session           = ForeignKey(ParsingSession, related_name='documents')
-    status            = CharField(choices=DocumentStatus.choices, default='uploading')
-    original_filename = TextField()
-    s3_key            = TextField()
-    file_size         = PositiveIntegerField(default=0)
-    mime_type         = CharField(default='application/pdf')
-    error_message     = TextField(blank=True)
-    celery_task_id    = CharField(blank=True)
-    processed_at      = DateTimeField(null=True)
-    created_at        = DateTimeField(default=timezone.now)
-    updated_at        = DateTimeField(auto_now=True)
+    session                = ForeignKey(ParsingSession, related_name='documents')
+    status                 = CharField(choices=DocumentStatus.choices, default='uploading')
+    original_filename      = TextField()
+    s3_key                 = TextField()
+    file_size              = PositiveIntegerField(default=0)
+    mime_type              = CharField(default='application/pdf')
+    error_message          = TextField(blank=True)
+    celery_task_id         = CharField(blank=True)
+    processed_at           = DateTimeField(null=True)
+    load                   = ForeignKey('machtms.Load', null=True, blank=True)
+    classification_passed  = BooleanField(null=True, default=None)
+    classification_reason  = TextField(blank=True)
+    created_at             = DateTimeField(default=timezone.now)
+    updated_at             = DateTimeField(auto_now=True)
 ```
 
-### ParsedRateCon
+The `load` FK is the success signal: when a document is `PARSED`, `load` will point to the created `Load` record.
 
-The parsed output from a rate confirmation. Created by the task code *after* the AI agent returns structured data.
+### PresignedURLEntryPoint
+
+A lightweight pre-session record tracking each presigned upload slot.
 
 ```python
-class ParsedRateCon(TMSModel):
-    document            = OneToOneField(RateConDocument, related_name='parsed_content')
-    raw_text            = TextField(blank=True)       # JSON dump of agent output
-    structured_data     = JSONField(null=True)         # Dict of agent output
-    load                = ForeignKey('machtms.Load', null=True, blank=True)
-    classification_passed = BooleanField(default=True)
-    classification_reason = TextField(blank=True)
-    created_at          = DateTimeField(default=timezone.now)
+class PresignedURLEntryPoint(TMSModel):
+    presigned_url = TextField()
+    s3_key        = TextField()
+    filename      = TextField()
+    expiration    = DateTimeField()
+    status        = CharField(choices=['orphaned', 'processed'], default='orphaned')
+    created_at    = DateTimeField(default=timezone.now)
+    updated_at    = DateTimeField(auto_now=True)
 ```
 
-The relationship chain: `ParsingSession` -> `RateConDocument` -> `ParsedRateCon` -> `Load`.
+Lifecycle: created as `ORPHANED` when presigned URLs are generated → marked `PROCESSED` when the session is created → deleted after the session exists.
 
 ---
 
-## The AI Agents
+## The AI Agent
 
-### Agent 1: rate_con_processor
+### rate_con_processor
 
 **File:** `machtms/agents/members/rate_con_processor.py`
 
 What does this agent do? Two things:
 
-1. **Classify** -- Is this PDF actually a rate confirmation, or did someone upload their grocery list?
-2. **Extract** -- If it passes classification, pull out every field: reference number, stops, addresses, appointment times, customer name, trailer type, etc.
+1. **Classify** — Is this PDF actually a rate confirmation, or did someone upload an invoice?
+2. **Extract** — If it passes classification, pull out every field: reference number, stops, addresses, appointment times, customer name, trailer type, etc.
 
 How does it return data? Via Agno's `output_schema` feature. The agent is configured with `output_schema=ParsedRateConData`, which forces the LLM to return a structured Pydantic model instead of free-form text.
 
 ```python
 rate_con_processor = Agent(
     name="Rate Con Processor",
-    model=OpenAIChat(id="gpt-5.2"),
+    model=OpenAIChat(id="gpt-4o"),
     add_history_to_context=False,
     output_schema=ParsedRateConData,
     instructions=[...],
 )
 ```
 
-Notice: **this agent has no tools.** It receives text, it returns structured data. No side effects. No database writes. The task code calls it like a function:
+**This agent has no tools.** It receives a PDF (via presigned URL in PDF mode, or extracted text in text mode), and returns structured data. No side effects. No database writes.
+
+In PDF mode, the task code calls it like this:
 
 ```python
-response = rate_con_processor.run(text, session_id=..., dependencies={...})
+response = send_pdf_url_to_agent(
+    s3_key=doc.s3_key,
+    agent=rate_con_processor,
+    session_id=str(uuid.uuid4()),
+    dependencies=agent_dependencies,
+)
 parsed_data = response.content  # ParsedRateConData instance
 ```
 
-### Agent 2: ratecon_load_creator
+### Load Creation (Deterministic Code, Not an Agent)
 
-**File:** `machtms/agents/members/ratecon_load_creator.py`
+Once the agent returns `ParsedRateConData`, the task code calls `create_load_from_ratecon_data()` — a plain Python function in `tasks.py`. This function:
 
-What does this agent do? It takes the structured data from Agent 1 and turns it into an actual `Load` record by:
+1. Resolves or creates the `Customer` by name
+2. Resolves or creates `Address` records for each stop via `get_or_create`
+3. Infers stop actions from historical stop data (`_get_suggested_action`)
+4. Parses appointment strings to ISO8601 UTC (`_parse_appointment`)
+5. Maps trailer type descriptions to system codes (`_map_trailer_type`)
+6. Assembles the full load payload and validates + saves via `LoadSerializer`
+7. Links the created load back to the document: `doc.load = load`
 
-1. Resolving (or creating) the customer
-2. Resolving (or creating) addresses for each stop
-3. Determining the correct action code for each stop (using historical stop data)
-4. Mapping trailer type descriptions to system codes
-5. Parsing appointment times to ISO8601 UTC
-6. Assembling the payload and calling `create_load_from_parsed()`
-
-This agent *does* have tools:
-
-```python
-ratecon_load_creator = Agent(
-    tools=[
-        LoadToolkit(),
-        AddressToolkit(),
-        CustomerToolkit(),
-        StopHistoryToolkit(),
-        DocumentParsingToolkit(),
-    ],
-    ...
-)
-```
-
-It uses these tools to search for existing customers, create addresses, look up stop history at known addresses, and ultimately create the load.
+This is deterministic code, not an LLM. It will either succeed or raise an exception — no ambiguity.
 
 ### The Pydantic Models
 
-**File:** `machtms/agents/models/ratecon_payload.py`
+**File:** `machtms/agents/toolkit/document_parsing.py` and related
 
-Two key models:
-
-- **`ParsedRateConData`** -- The output schema for Agent 1. Contains classification result, reference number, stops (with addresses and appointments), customer name, trailer type, and more.
-
-- **`RateConLoadPayload`** -- The structure that Agent 2 assembles and passes to `create_load_from_parsed()`. Mirrors the `LoadSerializer` input format, with integer FK IDs for addresses and customers (resolved by the agent's toolkit calls).
+`ParsedRateConData` is the output schema for the agent. It contains:
+- `classification`: `'PASS'` or `'FAIL'`
+- `classification_reason`: explanation if `FAIL`
+- `reference_number`, `bol_number`, `customer_name`, `trailer_type`
+- `stops`: list of stop objects with `street_address`, `city`, `state`, `zip_code`, `place_name`, `appointment`, `po_numbers`, `notes`
 
 ---
 
@@ -561,40 +599,37 @@ Two key models:
 
 **File:** `machtms/backend/agents/tests/test_integrated_parser.py`
 
-The integration test class `IntegratedRateConParserTest` acts as the frontend. It walks through the entire flow:
+The integration test class walks through the presigned-URL flow end to end:
 
 ```python
 def test_full_celery_pipeline(self):
-    # 1. Create session
-    resp = self.client.post(reverse('ratecon-create-session'), ...)
+    # 1. Get presigned URLs
+    resp = self.client.post('/ratecon/presigned-urls/', {'files': [{'filename': 'test.pdf'}]})
+    entrypoint_id = resp.data[0]['id']
+    presigned_url = resp.data[0]['presigned_url']
 
-    # 2. Register document (get presigned URL)
-    resp = self.client.post(reverse('ratecon-document-upload'), ...)
+    # 2. Upload to S3
+    requests.put(presigned_url, data=pdf_bytes, headers={'Content-Type': 'application/pdf'})
 
-    # 3. Upload to S3 via presigned URL
-    upload_resp = requests.put(presigned_url, data=pdf_bytes, ...)
+    # 3. Create session
+    resp = self.client.post('/ratecon/sessions/from-presigned/', {'entrypoint_ids': [entrypoint_id]})
+    session_id = resp.data['session_id']
 
-    # 4. Mark upload complete
-    resp = self.client.post(reverse('ratecon-upload-complete'), ...)
+    # 4. Trigger PDF processing
+    resp = self.client.post(f'/ratecon/sessions/{session_id}/process-pdf/', {'mode': 'async'})
 
-    # 5. Trigger processing
-    resp = self.client.post(reverse('ratecon-process-session', ...), data={'mode': 'sync'})
-
-    # 6. Poll for completion (up to 60 seconds)
+    # 5. Poll for completion (up to 60 seconds)
     while elapsed < max_wait:
         doc = RateConDocument.objects.get(pk=document_id)
         if doc.status in terminal_statuses:
             break
 
-    # 7. Assert the PARSED invariant
+    # 6. Assert the PARSED invariant
     self.assertEqual(doc.status, DocumentStatus.PARSED)
-    parsed = ParsedRateCon.objects.get(document=doc)
-    self.assertIsNotNone(parsed.load)  # Load must be linked
+    self.assertIsNotNone(doc.load)  # Load must be linked
 ```
 
 ### Skip conditions
-
-The test requires real credentials:
 
 ```python
 @skipUnless(
@@ -603,13 +638,11 @@ The test requires real credentials:
 )
 ```
 
-You need `OPENAI_API_KEY`, `AWS_ACCESS_KEY` environment variables, and a `test_documents/` directory containing at least one PDF rate confirmation.
+You need `OPENAI_API_KEY`, AWS credentials, and a `test_documents/` directory containing at least one PDF rate confirmation.
 
 ### The test runner: `--use-celery`
 
 **File:** `api/runner.py`
-
-How do you run a Celery worker during tests? The custom `TestContainerRunner` adds a `--use-celery` flag:
 
 ```bash
 uv run python manage.py test --testrunner=api.runner.TestContainerRunner --use-celery
@@ -620,33 +653,8 @@ What does this set up?
 1. **Testcontainers** spin up Docker containers for PostgreSQL, RabbitMQ, and Redis.
 2. Django settings are patched to point at the container endpoints.
 3. After `setup_databases()` creates the test database, a **Celery worker subprocess** is spawned.
-4. The worker subprocess receives environment variables pointing it at the test database, test RabbitMQ, and test Redis.
+4. The worker subprocess receives environment variables pointing it at the test database, RabbitMQ, and Redis.
 5. The worker runs with `--concurrency=1 --pool=solo` (single-threaded, no forking).
-
-```python
-cmd = [
-    sys.executable, '-m', 'celery',
-    '-A', 'api',
-    'worker',
-    '--loglevel=info',
-    '--concurrency=1',
-    '--pool=solo',
-]
-```
-
-Why `--pool=solo`? Because the worker needs to share the same test database. Forked processes would inherit the DB connection but might cause issues with Django's test database isolation.
-
-Worker output is streamed to stdout on a daemon thread, prefixed with `[celery]`, so you can see agent logs interleaved with test output.
-
-### Cleanup
-
-The test's `tearDown()` method cleans up S3 objects uploaded during the test:
-
-```python
-def tearDown(self):
-    for key in self._uploaded_s3_keys:
-        s3_client.delete_object(Bucket=bucket, Key=key)
-```
 
 ---
 
@@ -659,11 +667,7 @@ ERROR: database "test_machapi" is being accessed by other users
 DETAIL: There is 1 other session using the database.
 ```
 
-PostgreSQL refuses to drop a database with active connections. The default Django test runner calls `teardown_databases()` which does `DROP DATABASE test_machapi`. But the Celery worker subprocess is still alive with an open connection. Deadlock.
-
-### What was the fix?
-
-Stop the Celery worker **before** dropping the database:
+PostgreSQL refuses to drop a database with active connections. The fix is stopping the Celery worker **before** dropping the database:
 
 ```python
 def teardown_databases(self, old_config, **kwargs):
@@ -673,48 +677,9 @@ def teardown_databases(self, old_config, **kwargs):
     super().teardown_databases(old_config, **kwargs)
 ```
 
-The `_stop_celery_worker()` method sends `SIGTERM`, waits up to 5 seconds for graceful shutdown, and `SIGKILL`s if needed:
-
-```python
-def _stop_celery_worker(self):
-    if self.celery_worker_process is not None:
-        self.celery_worker_process.terminate()
-        try:
-            self.celery_worker_process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            self.celery_worker_process.kill()
-            self.celery_worker_process.wait()
-        self.celery_worker_process = None
-```
-
-Why does this have to happen in `teardown_databases()` specifically, and not in `teardown_test_environment()`? Because `teardown_databases()` is called *first*. By the time `teardown_test_environment()` runs, Django has already tried to drop the database.
-
 The full teardown order is:
-1. `teardown_databases()` -- stop worker, then drop test DB
-2. `teardown_test_environment()` -- stop containers, restore settings
-
----
-
-## Stale Upload Cleanup
-
-What if a user starts an upload and never finishes? Documents stuck in `UPLOADING` for more than an hour get cleaned up by a periodic task:
-
-```python
-@shared_task
-def cleanup_stale_uploads():
-    """Periodic cleanup of documents stuck in UPLOADING for more than 1 hour."""
-    cutoff = timezone.now() - timedelta(hours=1)
-    stale_qs = RateConDocument.objects.filter(
-        status=DocumentStatus.UPLOADING,
-        created_at__lt=cutoff,
-    )
-    count = stale_qs.update(
-        status=DocumentStatus.FAILED,
-        error_message='Upload timed out.',
-    )
-```
-
-After bulk-updating stale documents, it recomputes the status of any affected sessions.
+1. `teardown_databases()` — stop worker, then drop test DB
+2. `teardown_test_environment()` — stop containers, restore settings
 
 ---
 
@@ -722,26 +687,23 @@ After bulk-updating stale documents, it recomputes the status of any affected se
 
 | File | Purpose |
 |---|---|
-| `machtms/backend/RateConParser/models.py` | `ParsingSession`, `RateConDocument`, `ParsedRateCon` models |
-| `machtms/backend/RateConParser/views.py` | API endpoints (session CRUD, upload, process trigger) |
+| `machtms/backend/RateConParser/models.py` | `ParsingSession`, `RateConDocument`, `PresignedURLEntryPoint` models |
+| `machtms/backend/RateConParser/views.py` | API endpoints (presigned URLs, session creation, processing, polling, hide, orphan check) |
 | `machtms/backend/RateConParser/urls.py` | URL routing |
 | `machtms/backend/RateConParser/serializers.py` | DRF serializers for request/response |
-| `machtms/backend/RateConParser/tasks.py` | Celery tasks and `process_single_document()` |
-| `machtms/agents/members/rate_con_processor.py` | AI Agent 1: classify + extract |
-| `machtms/agents/members/ratecon_load_creator.py` | AI Agent 2: create load from parsed data |
-| `machtms/agents/toolkit/document_parsing.py` | `DocumentParsingToolkit` (assign load to parsed ratecon) |
-| `machtms/agents/toolkit/loads.py` | `LoadToolkit` with `create_load_from_parsed()` |
-| `machtms/agents/models/ratecon_payload.py` | Pydantic models: `ParsedRateConData`, `RateConLoadPayload` |
+| `machtms/backend/RateConParser/tasks.py` | Celery tasks, `process_single_document()`, `create_load_from_ratecon_data()` |
+| `machtms/agents/members/rate_con_processor.py` | AI Agent: classify + extract structured data |
 | `machtms/backend/agents/tests/test_integrated_parser.py` | End-to-end integration test |
 | `api/runner.py` | Custom test runner with testcontainers and `--use-celery` |
 
 ---
 
-## Design Principles -- A Summary
+## Design Principles — A Summary
 
 1. **Agents are tools, not managers.** They transform data. They do not control flow or manage state.
 2. **The task code is the single source of truth** for document status transitions.
-3. **The PARSED invariant is sacred.** `PARSED` means `ParsedRateCon` + linked `Load` exist. Always.
-4. **Auto-link over agent-link.** Critical side effects happen in deterministic code, not in LLM instruction lists.
-5. **Teardown order matters.** Kill the worker before dropping the database.
+3. **The PARSED invariant is sacred.** `PARSED` means a linked `Load` exists on the document. Always.
+4. **Presigned URLs first, session second.** The frontend requests upload slots, uploads to S3, then commits the session — decoupling upload from session creation.
+5. **Orphan recovery is a safety net.** `PresignedURLEntryPoint` records survive browser crashes and are recovered automatically.
 6. **Parallel safety via `SKIP LOCKED`.** Multiple workers claim documents without conflicts.
+7. **Teardown order matters.** Kill the worker before dropping the database.

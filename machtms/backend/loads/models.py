@@ -37,6 +37,7 @@ class Load(TMSModel):
     """
     Load model representing a transportation shipment.
     """
+    trip_id = models.CharField(max_length=50)
     reference_number = models.TextField(blank=True, default='')
     bol_number = models.TextField(blank=True, default='')
 
@@ -47,6 +48,8 @@ class Load(TMSModel):
         blank=True,
         related_name='loads'
     )
+
+    is_contractor = models.BooleanField(default=False)
 
     status = models.CharField(
         max_length=20,

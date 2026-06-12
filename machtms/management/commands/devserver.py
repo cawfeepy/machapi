@@ -1,4 +1,6 @@
+import os
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -30,6 +32,8 @@ class Command(RunserverCommand):
         self._original_celery_broker: str | None = None
         self._original_celery_result_backend: str | None = None
         self._original_redis_url: str | None = None
+        self.celery_worker_process: subprocess.Popen | None = None
+        self._celery_log_file = None
 
     def add_arguments(self, parser):
         super().add_arguments(parser)
@@ -77,6 +81,7 @@ class Command(RunserverCommand):
             self._start_containers()
             self._run_migrations()
             self._seed_data(options)
+            self._start_celery_worker()
             self._start_server(**options)
             self._wait_for_server()
             self.stdout.write(
@@ -226,6 +231,82 @@ class Command(RunserverCommand):
             f"Dev server did not start within {timeout}s."
         )
 
+    def _start_celery_worker(self) -> None:
+        self.stdout.write("\n" + "=" * 60)
+        self.stdout.write("Starting Celery worker...")
+        self.stdout.write("=" * 60)
+
+        worker_env = os.environ.copy()
+
+        db = settings.DATABASES['default']
+        worker_env['POSTGRES_HOST'] = db['HOST']
+        worker_env['POSTGRES_PORT'] = str(db['PORT'])
+        worker_env['POSTGRES_DB'] = db['NAME']
+        worker_env['POSTGRES_USER'] = db['USER']
+        worker_env['POSTGRES_PASSWORD'] = db['PASSWORD']
+
+        worker_env['USE_CELERY'] = 'True'
+        worker_env['CELERY_BROKER_URL'] = getattr(settings, 'CELERY_BROKER_URL', '')
+        worker_env['CELERY_RESULT_BACKEND'] = getattr(settings, 'CELERY_RESULT_BACKEND', '')
+        worker_env['DJANGO_SETTINGS_MODULE'] = 'api.settings'
+
+        for attr in [
+            'AWS_ACCESS_KEY', 'AWS_SECRET_KEY', 'AWS_REGION_NAME',
+            'AWS_UPLOAD_BUCKET', 'AWS_POST_SHIPMENT_BUCKET',
+            'AWS_RATECON_PARSE_BUCKET',
+        ]:
+            val = getattr(settings, attr, None)
+            if val:
+                worker_env[attr] = str(val)
+
+        openai_key = os.environ.get('OPENAI_API_KEY', '')
+        if openai_key:
+            worker_env['OPENAI_API_KEY'] = openai_key
+
+        cmd = [
+            sys.executable, '-m', 'celery',
+            '-A', 'api',
+            'worker',
+            '--loglevel=info',
+            '--concurrency=2',
+            '--pool=threads',
+        ]
+
+        log_path = os.path.join(settings.BASE_DIR, 'machtms', 'logs', 'celery.txt')
+        self._celery_log_file = open(log_path, 'w')
+        self.stdout.write(f"  -> Celery worker logs: {log_path}")
+
+        self.celery_worker_process = subprocess.Popen(
+            cmd,
+            env=worker_env,
+            stdout=self._celery_log_file,
+            stderr=subprocess.STDOUT,
+        )
+
+        time.sleep(3)
+        if self.celery_worker_process.poll() is not None:
+            raise RuntimeError(
+                f"Celery worker exited immediately with code "
+                f"{self.celery_worker_process.returncode}"
+            )
+
+        self.stdout.write(f"  -> Celery worker started (PID: {self.celery_worker_process.pid})")
+        self.stdout.write("=" * 60 + "\n")
+
+    def _stop_celery_worker(self) -> None:
+        if self.celery_worker_process is not None:
+            self.stdout.write("Stopping Celery worker...")
+            self.celery_worker_process.terminate()
+            try:
+                self.celery_worker_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.celery_worker_process.kill()
+                self.celery_worker_process.wait()
+            self.celery_worker_process = None
+        if self._celery_log_file is not None:
+            self._celery_log_file.close()
+            self._celery_log_file = None
+
     # ------------------------------------------------------------------
     # Cleanup
     # ------------------------------------------------------------------
@@ -249,6 +330,7 @@ class Command(RunserverCommand):
                 except Exception as exc:
                     self.stdout.write(f"Warning: Error stopping {name}: {exc}")
 
+        self._stop_celery_worker()
         self._restore_settings()
 
     def _restore_settings(self):

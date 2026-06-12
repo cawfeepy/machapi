@@ -1,7 +1,7 @@
 from agno.run.base import RunContext
 from agno.tools import Toolkit
 
-from machtms.backend.RateConParser.models import ParsedRateCon
+from machtms.backend.RateConParser.models import RateConDocument
 
 
 class DocumentParsingToolkit(Toolkit):
@@ -9,15 +9,15 @@ class DocumentParsingToolkit(Toolkit):
 
     def __init__(self):
         super().__init__(name="document_parsing_toolkit")
-        self.register(self.assign_load_to_parsed_ratecon)
+        self.register(self.assign_load_to_document)
 
-    def assign_load_to_parsed_ratecon(self, run_context: RunContext, load_id: int) -> str:
-        """Link a created load to the ParsedRateCon record for the current document.
+    def assign_load_to_document(self, run_context: RunContext, load_id: int) -> str:
+        """Link a created load to the RateConDocument record for the current document.
 
         The document ID is read from run_context.dependencies["ratecon_id"].
 
         Args:
-            load_id: The Load ID to associate with the parsed content.
+            load_id: The Load ID to associate with the document.
 
         Returns:
             Confirmation message or error string.
@@ -27,10 +27,10 @@ class DocumentParsingToolkit(Toolkit):
             return "Error: ratecon_id not found in run context dependencies."
 
         try:
-            parsed = ParsedRateCon.objects.get(document_id=ratecon_id)
-        except ParsedRateCon.DoesNotExist:
-            return f"Error: No ParsedRateCon found for document ID {ratecon_id}."
+            doc = RateConDocument.objects.get(pk=ratecon_id)
+        except RateConDocument.DoesNotExist:
+            return f"Error: No RateConDocument found for ID {ratecon_id}."
 
-        parsed.load_id = load_id
-        parsed.save(update_fields=['load_id'])
+        doc.load_id = load_id
+        doc.save(update_fields=['load_id', 'updated_at'])
         return f"Successfully linked load {load_id} to RateConDocument {ratecon_id}."

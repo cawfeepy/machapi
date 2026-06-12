@@ -107,7 +107,7 @@ def extract_text_from_pdf(file_buffer: BytesIO) -> str
 
 **Not a Celery task.** A plain utility function.
 
-**What it does:** Takes a `BytesIO` buffer containing PDF bytes, opens it with `pymupdf`, extracts text from every page, and joins them with newlines.
+**What it does:** Takes a `BytesIO` buffer containing PDF bytes, opens it with `litparse`, extracts text from every page, and joins them with newlines.
 
 > **What if the PDF has no text?** This happens with scanned documents that are pure images. The function returns an empty string, and `process_single_document` catches this and marks the document as FAILED.
 
@@ -133,7 +133,7 @@ def process_single_document(document_id: int)
         |
 4. Download file from S3 into BytesIO buffer
         |
-5. Extract text from PDF (pymupdf)
+5. Extract text from PDF (litparse)
         |
    [If text is empty -> mark FAILED, return]
         |
@@ -260,7 +260,7 @@ Sequential loop                              group of workers
         +---------> process_single_document() <----+
                            |
                     Download from S3
-                    Extract text (pymupdf)
+                    Extract text (litparse)
                     Run rate_con_processor agent
                     -> returns ParsedRateConData (Pydantic)
                     Store as ParsedRateCon record

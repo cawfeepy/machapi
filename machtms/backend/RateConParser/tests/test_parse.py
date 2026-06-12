@@ -4,20 +4,21 @@ Test suite for the RateConParser functionality.
 This module contains tests for:
 1. ParsingSession model behavior (status, progress)
 2. RateConDocument model behavior
-3. PDF text extraction via pymupdf
+3. PDF text extraction via LiteParse CLI
 4. Agent response parsing
 5. Document processing tasks (with mocked S3 and agent)
 6. Stale upload cleanup
 7. Agent integration tests (requires OPENAI_API_KEY)
 """
 import os
+import tempfile
 import uuid
 from datetime import timedelta
 from io import BytesIO
 from unittest import skipUnless
 from unittest.mock import patch, MagicMock
 
-import pymupdf
+from fpdf import FPDF
 from django.conf import settings
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -25,7 +26,6 @@ from django.utils import timezone
 from machtms.backend.RateConParser.models import (
     ParsingSession,
     RateConDocument,
-    ParsedRateCon,
     SessionStatus,
     DocumentStatus,
 )
@@ -34,26 +34,114 @@ from machtms.backend.RateConParser.tasks import (
     extract_text_from_pdf,
     send_pdf_url_to_agent,
     process_single_document,
-    cleanup_stale_uploads,
 )
 from machtms.backend.auth.models import Organization
 from machtms.core.factories import (
     ParsingSessionFactory,
     RateConDocumentFactory,
-    ParsedRateConFactory,
 )
 
 
 def _create_pdf_buffer(text_content: str = "Sample rate confirmation text") -> BytesIO:
-    """Generate an in-memory PDF with the given text."""
-    doc = pymupdf.open()
-    page = doc.new_page(width=612, height=792)
-    page.insert_text((72, 72), text_content, fontsize=12)
-    buffer = BytesIO()
-    doc.save(buffer)
-    doc.close()
-    buffer.seek(0)
+    """Generate an in-memory PDF with the given text using fpdf2."""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=12)
+    pdf.text(72, 72, text_content)
+    buffer = BytesIO(pdf.output())
     return buffer
+
+
+def _create_pdf_tmp_file(text_content: str = "Sample rate confirmation text") -> str:
+    """Generate a PDF with the given text and return its temp file path."""
+    buffer = _create_pdf_buffer(text_content)
+    tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+    tmp.write(buffer.read())
+    tmp.close()
+    return tmp.name
+
+
+def _create_empty_pdf_buffer() -> BytesIO:
+    """Generate an in-memory PDF with a blank page (no text)."""
+    pdf = FPDF()
+    pdf.add_page()
+    buffer = BytesIO(pdf.output())
+    return buffer
+
+
+def _create_multipage_pdf_buffer(pages: list[str]) -> BytesIO:
+    """Generate an in-memory PDF with one page per text entry."""
+    pdf = FPDF()
+    pdf.set_font("Helvetica", size=12)
+    for text in pages:
+        pdf.add_page()
+        pdf.text(72, 72, text)
+    buffer = BytesIO(pdf.output())
+    return buffer
+
+
+def _prettify_parsed_data(parsed_data):
+    """Pretty-print parsed rate confirmation data."""
+    import json
+    
+    # Convert Pydantic model to dict if needed
+    if hasattr(parsed_data, 'model_dump'):
+        data_dict = parsed_data.model_dump()
+    elif hasattr(parsed_data, '__dict__'):
+        data_dict = parsed_data.__dict__
+    else:
+        data_dict = parsed_data
+    
+    output = []
+    output.append("\n" + "="*80)
+    output.append("PARSED RATE CONFIRMATION DATA")
+    output.append("="*80)
+    
+    # Classification
+    output.append("\n╔" + "="*78 + "╗")
+    output.append("║ CLASSIFICATION RESULT" + " "*57 + "║")
+    output.append("╚" + "="*78 + "╝")
+    output.append(f"Classification: {data_dict.get('classification', 'N/A')}")
+    if data_dict.get('classification_reason'):
+        output.append(f"Reason: {data_dict.get('classification_reason')}")
+    
+    if data_dict.get('classification') == 'PASS':
+        # Extracted Data
+        output.append("\n╔" + "="*78 + "╗")
+        output.append("║ EXTRACTED DATA" + " "*63 + "║")
+        output.append("╚" + "="*78 + "╝")
+        output.append(f"Reference #:    {data_dict.get('reference_number', 'N/A')}")
+        output.append(f"BOL #:          {data_dict.get('bol_number', 'N/A')}")
+        output.append(f"Customer:       {data_dict.get('customer_name', 'N/A')}")
+        output.append(f"Trailer Type:   {data_dict.get('trailer_type', 'N/A')}")
+        
+        # Stops
+        output.append("\n╔" + "="*78 + "╗")
+        output.append("║ STOPS" + " "*72 + "║")
+        output.append("╚" + "="*78 + "╝")
+        stops = data_dict.get('stops', [])
+        for i, stop in enumerate(stops, 1):
+            output.append(f"\n▸ Stop {i} - {stop.get('stop_type', 'N/A')}")
+            if stop.get('place_name'):
+                output.append(f"  Location:      {stop.get('place_name')}")
+            output.append(f"  Address:       {stop.get('street_address', 'N/A')}")
+            output.append(f"                 {stop.get('city', 'N/A')}, {stop.get('state', 'N/A')} {stop.get('zip_code', 'N/A')}")
+            output.append(f"  Appointment:   {stop.get('appointment', 'N/A')}")
+            if stop.get('po_numbers'):
+                po_str = ', '.join(str(p) for p in stop.get('po_numbers', []))
+                output.append(f"  PO Numbers:    {po_str}")
+            if stop.get('notes'):
+                output.append(f"  Notes:         {stop.get('notes')}")
+        
+        # Billing
+        output.append("\n╔" + "="*78 + "╗")
+        output.append("║ BILLING" + " "*69 + "║")
+        output.append("╚" + "="*78 + "╝")
+        output.append(f"Standard Pay:   {data_dict.get('invoice_email_standard_pay', 'UNKNOWN')}")
+        output.append(f"Quick Pay:      {data_dict.get('invoice_email_quick_pay', 'UNKNOWN')}")
+    
+    output.append("\n" + "="*80 + "\n")
+    return "\n".join(output)
 
 
 SAMPLE_PARSED_DATA_PASS = ParsedRateConData(
@@ -232,14 +320,15 @@ class RateConDocumentModelTests(TestCase):
         self.assertIsNotNone(doc.original_filename)
         self.assertIsNotNone(doc.s3_key)
 
-    def test_parsed_content_relation(self):
-        doc = RateConDocumentFactory(organization=self.organization)
-        parsed = ParsedRateConFactory(
-            document=doc,
+    def test_classification_fields(self):
+        doc = RateConDocumentFactory(
             organization=self.organization,
+            classification_passed=True,
+            classification_reason="Looks good",
         )
-        self.assertEqual(doc.parsed_content, parsed)
-        self.assertEqual(parsed.document, doc)
+        doc.refresh_from_db()
+        self.assertTrue(doc.classification_passed)
+        self.assertEqual(doc.classification_reason, "Looks good")
 
     def test_str_representation(self):
         doc = RateConDocumentFactory(organization=self.organization)
@@ -252,7 +341,7 @@ class RateConDocumentModelTests(TestCase):
 
 @override_settings(DEBUG=False)
 class TextExtractionTests(TestCase):
-    """Tests for PDF text extraction via pymupdf."""
+    """Tests for PDF text extraction via LiteParse CLI."""
 
     def test_extract_text_from_pdf(self):
         buffer = _create_pdf_buffer("Hello rate confirmation world")
@@ -260,25 +349,12 @@ class TextExtractionTests(TestCase):
         self.assertIn("Hello rate confirmation world", text)
 
     def test_extract_text_from_empty_pdf(self):
-        doc = pymupdf.open()
-        doc.new_page(width=612, height=792)  # blank page
-        buffer = BytesIO()
-        doc.save(buffer)
-        doc.close()
-        buffer.seek(0)
+        buffer = _create_empty_pdf_buffer()
         text = extract_text_from_pdf(buffer)
         self.assertEqual(text.strip(), "")
 
     def test_extract_text_multipage(self):
-        doc = pymupdf.open()
-        page1 = doc.new_page(width=612, height=792)
-        page1.insert_text((72, 72), "Page 1 content", fontsize=12)
-        page2 = doc.new_page(width=612, height=792)
-        page2.insert_text((72, 72), "Page 2 content", fontsize=12)
-        buffer = BytesIO()
-        doc.save(buffer)
-        doc.close()
-        buffer.seek(0)
+        buffer = _create_multipage_pdf_buffer(["Page 1 content", "Page 2 content"])
         text = extract_text_from_pdf(buffer)
         self.assertIn("Page 1 content", text)
         self.assertIn("Page 2 content", text)
@@ -331,8 +407,7 @@ class ProcessDocumentTaskTests(TestCase):
         doc.refresh_from_db()
         self.assertEqual(doc.status, DocumentStatus.PARSED)
         self.assertIsNotNone(doc.processed_at)
-        self.assertTrue(hasattr(doc, 'parsed_content'))
-        self.assertTrue(doc.parsed_content.classification_passed)
+        self.assertTrue(doc.classification_passed)
 
     @patch('machtms.core.utils.s3_utils.download_from_buffer')
     @patch('machtms.agents.members.rate_con_processor.rate_con_processor')
@@ -350,20 +425,14 @@ class ProcessDocumentTaskTests(TestCase):
 
         doc.refresh_from_db()
         self.assertEqual(doc.status, DocumentStatus.MISCLASSIFIED)
-        self.assertFalse(doc.parsed_content.classification_passed)
+        self.assertFalse(doc.classification_passed)
 
     @patch('machtms.core.utils.s3_utils.download_from_buffer')
     def test_process_document_empty_pdf(self, mock_download):
         doc = self._create_pending_doc()
 
         # Empty PDF
-        empty_doc = pymupdf.open()
-        empty_doc.new_page(width=612, height=792)
-        buf = BytesIO()
-        empty_doc.save(buf)
-        empty_doc.close()
-        buf.seek(0)
-        mock_download.return_value = buf
+        mock_download.return_value = _create_empty_pdf_buffer()
 
         process_single_document(doc.pk)
 
@@ -407,60 +476,6 @@ class ProcessDocumentTaskTests(TestCase):
 
         session.refresh_from_db()
         self.assertEqual(session.status, SessionStatus.COMPLETED)
-
-
-# ============================================================================
-# Cleanup Task Tests
-# ============================================================================
-
-@override_settings(DEBUG=False)
-class CleanupTaskTests(TestCase):
-    """Tests for cleanup_stale_uploads task."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.organization = Organization.objects.create(
-            company_name="Test Org",
-            phone="555-000-0000",
-            email="test@org.com",
-        )
-
-    def test_cleanup_stale_uploads(self):
-        session = ParsingSessionFactory(organization=self.organization)
-        stale_doc = RateConDocumentFactory(
-            session=session,
-            organization=self.organization,
-            status=DocumentStatus.UPLOADING,
-            created_at=timezone.now() - timedelta(hours=2),
-        )
-        fresh_doc = RateConDocumentFactory(
-            session=session,
-            organization=self.organization,
-            status=DocumentStatus.UPLOADING,
-            created_at=timezone.now(),
-        )
-
-        cleanup_stale_uploads()
-
-        stale_doc.refresh_from_db()
-        fresh_doc.refresh_from_db()
-        self.assertEqual(stale_doc.status, DocumentStatus.FAILED)
-        self.assertIn("timed out", stale_doc.error_message)
-        self.assertEqual(fresh_doc.status, DocumentStatus.UPLOADING)
-
-    def test_cleanup_ignores_non_uploading(self):
-        session = ParsingSessionFactory(organization=self.organization)
-        pending_doc = RateConDocumentFactory(
-            session=session,
-            organization=self.organization,
-            status=DocumentStatus.PENDING,
-            created_at=timezone.now() - timedelta(hours=2),
-        )
-
-        cleanup_stale_uploads()
-
-        pending_doc.refresh_from_db()
-        self.assertEqual(pending_doc.status, DocumentStatus.PENDING)
 
 
 # ============================================================================
@@ -550,8 +565,8 @@ class ProcessDocumentModeTests(TestCase):
 
     @patch('machtms.backend.RateConParser.tasks.send_pdf_url_to_agent')
     @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
-    def test_pdf_url_path_pass_creates_record(self, mock_load_creator, mock_send_pdf):
-        """PASS classification via PDF URL path creates ParsedRateCon."""
+    def test_pdf_url_path_pass_stores_classification(self, mock_load_creator, mock_send_pdf):
+        """PASS classification via PDF URL path stores classification on document."""
         doc = self._create_pending_doc()
 
         mock_response = MagicMock()
@@ -563,8 +578,7 @@ class ProcessDocumentModeTests(TestCase):
 
         doc.refresh_from_db()
         self.assertEqual(doc.status, DocumentStatus.PARSED)
-        self.assertTrue(hasattr(doc, 'parsed_content'))
-        self.assertTrue(doc.parsed_content.classification_passed)
+        self.assertTrue(doc.classification_passed)
 
     @patch('machtms.backend.RateConParser.tasks.send_pdf_url_to_agent')
     def test_pdf_url_path_fail_sets_misclassified(self, mock_send_pdf):
@@ -579,7 +593,7 @@ class ProcessDocumentModeTests(TestCase):
 
         doc.refresh_from_db()
         self.assertEqual(doc.status, DocumentStatus.MISCLASSIFIED)
-        self.assertFalse(doc.parsed_content.classification_passed)
+        self.assertFalse(doc.classification_passed)
 
     @patch('machtms.core.utils.s3_utils.generate_presigned_url')
     def test_send_pdf_url_to_agent_generates_presigned_url(self, mock_presigned):
@@ -712,7 +726,7 @@ class RealPDFIntegrationTests(TestCase):
         ]
 
     def test_extract_text_from_real_pdf(self):
-        """Verify pymupdf can extract text from the real PDFs."""
+        """Verify LiteParse can extract text from the real PDFs."""
         for pdf_path in self._get_pdf_paths():
             with open(pdf_path, 'rb') as f:
                 buf = BytesIO(f.read())
@@ -795,15 +809,9 @@ class RealPDFIntegrationTests(TestCase):
         )
         parsed_data = response.content  # ParsedRateConData instance
 
-        # Create ParsedRateCon record
-        parsed_record = ParsedRateCon.objects.create(
-            organization=session.organization,
-            document=doc,
-            raw_text=parsed_data.model_dump_json(),
-            structured_data=parsed_data.model_dump(),
-            classification_passed=(parsed_data.classification == 'PASS'),
-            classification_reason=parsed_data.classification_reason,
-        )
+        # Store classification on the document
+        doc.classification_passed = (parsed_data.classification == 'PASS')
+        doc.classification_reason = parsed_data.classification_reason
 
         # Update document status
         if parsed_data.classification == 'PASS':
@@ -816,13 +824,11 @@ class RealPDFIntegrationTests(TestCase):
         # Verify
         doc.refresh_from_db()
         self.assertIn(doc.status, [DocumentStatus.PARSED, DocumentStatus.MISCLASSIFIED])
-        self.assertTrue(hasattr(doc, 'parsed_content'))
-        self.assertEqual(doc.parsed_content.pk, parsed_record.pk)
+        self.assertIsNotNone(doc.classification_passed)
 
         print(f"\n--- Full Pipeline Result for {filename} ---")
         print(f"Document Status: {doc.status}")
-        print(f"Classification: {'PASS' if parsed_record.classification_passed else 'FAIL'}")
-        print(f"Structured Data: {parsed_record.structured_data}")
+        print(f"Classification: {'PASS' if doc.classification_passed else 'FAIL'}")
 
 
 # ============================================================================
@@ -964,16 +970,23 @@ class ProcessSingleDocumentModeE2ETests(TestCase):
         )
 
     @patch('machtms.core.utils.s3_utils.download_from_buffer')
-    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
-    def test_use_raw_text_true_with_real_pdf(self, mock_load_creator, mock_download):
-        """use_raw_text=True with a real PDF: mocked S3 download, real agent call."""
+    def test_use_raw_text_true_with_real_pdf(self, mock_download):
+        """use_raw_text=True with a real PDF: mocked S3 download, real agent + load creation."""
+        import time
+        from machtms.agents.members.rate_con_processor import rate_con_processor
+
+        test_start_time = time.time()
+
         pdf_path = self._get_first_pdf_path()
         filename = os.path.basename(pdf_path)
 
+        # Extract text from PDF for later display
         with open(pdf_path, 'rb') as f:
-            pdf_buffer = BytesIO(f.read())
-        mock_download.return_value = pdf_buffer
-        mock_load_creator.run.return_value = MagicMock(content="Load created")
+            pdf_content = f.read()
+        pdf_buffer = BytesIO(pdf_content)
+        pdf_text = extract_text_from_pdf(BytesIO(pdf_content))
+
+        mock_download.return_value = BytesIO(pdf_content)
 
         session = ParsingSessionFactory(organization=self.organization)
         doc = RateConDocumentFactory(
@@ -983,24 +996,107 @@ class ProcessSingleDocumentModeE2ETests(TestCase):
             status=DocumentStatus.PENDING,
         )
 
+        # Time the actual document processing
+        process_start_time = time.time()
         process_single_document(doc.pk, use_raw_text=True)
+        process_end_time = time.time()
+        process_duration = process_end_time - process_start_time
 
         doc.refresh_from_db()
-        print(f"\n[raw text mode] {filename} -> status={doc.status}")
+        
+        # Also run the agent directly to get prettified output
+        agent_start = time.time()
+        agent_response = rate_con_processor.run(
+            pdf_text,
+            session_id=str(uuid.uuid4()),
+        )
+        agent_end = time.time()
+        agent_duration = agent_end - agent_start
+        
+        parsed_data = agent_response.content
+        
+        # Print timing and results
+        print(f"\n{'='*80}")
+        print(f"TEST: use_raw_text=True with Real PDF")
+        print(f"{'='*80}")
+        print(f"Document: {filename}")
+        print(f"Status: {doc.status}")
+        print(f"Classification: {'PASS' if doc.classification_passed else 'FAIL'}")
+        print(f"\nTiming:")
+        print(f"  Document Processing: {process_duration:.3f}s")
+        print(f"  Agent Processing:    {agent_duration:.3f}s")
+        
+        test_end_time = time.time()
+        total_duration = test_end_time - test_start_time
+        print(f"  Total Test Duration: {total_duration:.3f}s")
+        
+        # Print prettified parsed data
+        print(_prettify_parsed_data(parsed_data))
+
+        # Print the actual Load created in the DB
+        if doc.status == DocumentStatus.PARSED:
+            from machtms.backend.loads.models import Load
+            from machtms.backend.addresses.models import Address
+            load = Load.objects.filter(ratecondocument=doc).first()
+            if load:
+                print("\n" + "="*80)
+                print("LOAD CREATED IN DATABASE")
+                print("="*80)
+                print(f"  Load ID:          {load.pk}")
+                print(f"  Reference #:      {load.reference_number}")
+                print(f"  BOL #:            {load.bol_number}")
+                print(f"  Trailer Type:     {load.trailer_type}")
+                print(f"  Status:           {load.status}")
+                print(f"  Billing Status:   {load.billing_status}")
+                if load.customer:
+                    print(f"  Customer:         {load.customer.customer_name}")
+                for leg in load.legs.all():
+                    print(f"\n  Leg {leg.pk}:")
+                    for stop in leg.stops.select_related('address').all():
+                        addr = stop.address
+                        print(f"    Stop {stop.stop_number} ({stop.action}):")
+                        if addr.place_name:
+                            print(f"      Location:     {addr.place_name}")
+                        print(f"      Address:      {addr.street}")
+                        print(f"                    {addr.city}, {addr.state} {addr.zip_code}")
+                        print(f"      Appointment:  {stop.start_range}")
+                        if stop.po_numbers:
+                            print(f"      PO Numbers:   {stop.po_numbers}")
+                        if stop.driver_notes:
+                            print(f"      Driver Notes: {stop.driver_notes}")
+                print("\n" + "="*80)
+            else:
+                print("\n[WARNING] Status is PARSED but no Load found linked to this document.")
+
         self.assertIn(doc.status, [DocumentStatus.PARSED, DocumentStatus.MISCLASSIFIED])
-        self.assertTrue(hasattr(doc, 'parsed_content'))
+        self.assertIsNotNone(doc.classification_passed)
 
     @patch('machtms.core.utils.s3_utils.generate_presigned_url')
-    @patch('machtms.agents.members.ratecon_load_creator.ratecon_load_creator')
-    def test_use_raw_text_false_with_real_pdf(self, mock_load_creator, mock_presigned):
-        """use_raw_text=False with a real PDF: mocked presigned URL, real agent call."""
+    def test_use_raw_text_false_with_real_pdf(self, mock_presigned):
+        """use_raw_text=False with a real PDF: local HTTP server serves the PDF to the agent."""
+        import time
+        import threading
+        import http.server
+        import functools
+        from machtms.agents.members.rate_con_processor import rate_con_processor
+
+        test_start_time = time.time()
+
         pdf_path = self._get_first_pdf_path()
         filename = os.path.basename(pdf_path)
 
-        # Generate a real presigned URL is not possible without AWS creds,
-        # so we use a publicly accessible test PDF URL for the agent
-        mock_presigned.return_value = "https://agno-public.s3.amazonaws.com/recipes/ThaiRecipes.pdf"
-        mock_load_creator.run.return_value = MagicMock(content="Load created")
+        # Serve test_documents/ over a local HTTP server so the agent can fetch the PDF
+        handler = functools.partial(
+            http.server.SimpleHTTPRequestHandler,
+            directory=TEST_DOCUMENTS_DIR,
+        )
+        server = http.server.HTTPServer(('127.0.0.1', 0), handler)
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        local_url = f"http://127.0.0.1:{port}/{filename}"
+        mock_presigned.return_value = local_url
 
         session = ParsingSessionFactory(organization=self.organization)
         doc = RateConDocumentFactory(
@@ -1010,10 +1106,46 @@ class ProcessSingleDocumentModeE2ETests(TestCase):
             status=DocumentStatus.PENDING,
         )
 
+        # Time the document processing
+        process_start_time = time.time()
         process_single_document(doc.pk, use_raw_text=False)
+        process_end_time = time.time()
+        process_duration = process_end_time - process_start_time
 
         doc.refresh_from_db()
-        print(f"\n[PDF URL mode] {filename} -> status={doc.status}")
-        # The agent should process the PDF (ThaiRecipes.pdf is not a rate con, so FAIL is expected)
+
+        # Also run the agent directly to get prettified output
+        from agno.media import File as AgnoFile
+        agent_start = time.time()
+        agent_response = rate_con_processor.run(
+            "Process this rate confirmation document.",
+            files=[AgnoFile(url=local_url)],
+            session_id=str(uuid.uuid4()),
+        )
+        agent_end = time.time()
+        agent_duration = agent_end - agent_start
+
+        server.shutdown()
+
+        parsed_data = agent_response.content
+
+        # Print timing and results
+        print(f"\n{'='*80}")
+        print(f"TEST: use_raw_text=False with Real PDF (no LiteParse)")
+        print(f"{'='*80}")
+        print(f"Document: {filename}")
+        print(f"Status: {doc.status}")
+        print(f"Classification: {'PASS' if doc.classification_passed else 'FAIL'}")
+        print(f"\nTiming:")
+        print(f"  Document Processing: {process_duration:.3f}s")
+        print(f"  Agent Processing:    {agent_duration:.3f}s")
+
+        test_end_time = time.time()
+        total_duration = test_end_time - test_start_time
+        print(f"  Total Test Duration: {total_duration:.3f}s")
+
+        # Print prettified parsed data
+        print(_prettify_parsed_data(parsed_data))
+
         self.assertIn(doc.status, [DocumentStatus.PARSED, DocumentStatus.MISCLASSIFIED])
-        self.assertTrue(hasattr(doc, 'parsed_content'))
+        self.assertIsNotNone(doc.classification_passed)

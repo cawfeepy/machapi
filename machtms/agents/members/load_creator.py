@@ -9,7 +9,6 @@ from .carrier_assignment_agent import carrier_assignment_agent
 
 load_creation_team = Team(
     name="Load Creation Team",
-    model=OpenAIChat(id="gpt-5.2"),
     members=[load_parser, stop_builder, load_data_agent, carrier_assignment_agent],
     tools=[LoadToolkit()],
     instructions=[

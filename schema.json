@@ -1,8 +1,7 @@
 openapi: 3.0.3
 info:
-  title: machTMS API
-  version: 1.0.0
-  description: Transportation Management System API
+  title: ''
+  version: 0.0.0
 paths:
   /api/address-usage-accumulate/:
     get:
@@ -25,8 +24,6 @@ paths:
           type: string
       tags:
       - address-usage-accumulate
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -47,16 +44,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddressUsageAccumulate'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AddressUsageAccumulate'
+              $ref: '#/components/schemas/AddressUsageAccumulateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AddressUsageAccumulate'
+              $ref: '#/components/schemas/AddressUsageAccumulateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressUsageAccumulateRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -79,76 +74,12 @@ paths:
         required: true
       tags:
       - address-usage-accumulate
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddressUsageAccumulate'
-          description: ''
-  /api/address-usage-by-customer/:
-    get:
-      operationId: address_usage_by_customer_list
-      description: |-
-        ViewSet for managing AddressUsageByCustomer objects.
-        Tracks the relationship between addresses and customers,
-        including usage statistics.
-      parameters:
-      - name: ordering
-        required: false
-        in: query
-        description: Which field to use when ordering the results.
-        schema:
-          type: string
-      - name: search
-        required: false
-        in: query
-        description: A search term.
-        schema:
-          type: string
-      tags:
-      - address-usage-by-customer
-      security:
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AddressUsageByCustomer'
-          description: ''
-    post:
-      operationId: address_usage_by_customer_create
-      description: |-
-        ViewSet for managing AddressUsageByCustomer objects.
-        Tracks the relationship between addresses and customers,
-        including usage statistics.
-      tags:
-      - address-usage-by-customer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddressUsageByCustomer'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AddressUsageByCustomer'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/AddressUsageByCustomer'
-        required: true
-      security:
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AddressUsageByCustomer'
           description: ''
   /api/address-usage-by-customer-accumulate/:
     get:
@@ -171,8 +102,6 @@ paths:
           type: string
       tags:
       - address-usage-by-customer-accumulate
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -193,16 +122,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+              $ref: '#/components/schemas/AddressUsageByCustomerAccumulateRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
+              $ref: '#/components/schemas/AddressUsageByCustomerAccumulateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressUsageByCustomerAccumulateRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -225,39 +152,12 @@ paths:
         required: true
       tags:
       - address-usage-by-customer-accumulate
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AddressUsageByCustomerAccumulate'
-          description: ''
-  /api/address-usage-by-customer/{id}/:
-    get:
-      operationId: address_usage_by_customer_retrieve
-      description: |-
-        ViewSet for managing AddressUsageByCustomer objects.
-        Tracks the relationship between addresses and customers,
-        including usage statistics.
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this Address Usage.
-        required: true
-      tags:
-      - address-usage-by-customer
-      security:
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AddressUsageByCustomer'
           description: ''
   /api/addresses/:
     get:
@@ -280,8 +180,6 @@ paths:
           type: string
       tags:
       - addresses
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -302,16 +200,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Address'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Address'
+              $ref: '#/components/schemas/AddressRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Address'
+              $ref: '#/components/schemas/AddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -334,8 +230,6 @@ paths:
         required: true
       tags:
       - addresses
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -361,16 +255,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Address'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Address'
+              $ref: '#/components/schemas/AddressRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Address'
+              $ref: '#/components/schemas/AddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -396,15 +288,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedAddress'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedAddress'
+              $ref: '#/components/schemas/PatchedAddressRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedAddress'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAddressRequest'
       responses:
         '200':
           content:
@@ -426,8 +316,199 @@ paths:
         required: true
       tags:
       - addresses
+      responses:
+        '204':
+          description: No response body
+  /api/agents/chat/:
+    post:
+      operationId: agents_chat_create
+      description: Non-streaming POST endpoint for agent chat.
+      tags:
+      - agents
       security:
-      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/agents/stream/:
+    post:
+      operationId: agents_stream_create
+      description: SSE streaming POST endpoint for agent chat.
+      tags:
+      - agents
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/ap_contacts/:
+    get:
+      operationId: ap_contacts_list
+      description: |-
+        ClassViewSet with convenience methods to reduce repitition
+        get_queryset_all: depending on environment, will return a
+        queryset with either organization or no organization
+
+        perform_create: depending on environment, will save
+        serializer with organization or no organization
+      tags:
+      - ap_contacts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/APContact'
+          description: ''
+    post:
+      operationId: ap_contacts_create
+      description: |-
+        ClassViewSet with convenience methods to reduce repitition
+        get_queryset_all: depending on environment, will return a
+        queryset with either organization or no organization
+
+        perform_create: depending on environment, will save
+        serializer with organization or no organization
+      tags:
+      - ap_contacts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APContactRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/APContactRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/APContactRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APContact'
+          description: ''
+  /api/ap_contacts/{id}/:
+    get:
+      operationId: ap_contacts_retrieve
+      description: |-
+        ClassViewSet with convenience methods to reduce repitition
+        get_queryset_all: depending on environment, will return a
+        queryset with either organization or no organization
+
+        perform_create: depending on environment, will save
+        serializer with organization or no organization
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this accounts payable contact.
+        required: true
+      tags:
+      - ap_contacts
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APContact'
+          description: ''
+    put:
+      operationId: ap_contacts_update
+      description: |-
+        ClassViewSet with convenience methods to reduce repitition
+        get_queryset_all: depending on environment, will return a
+        queryset with either organization or no organization
+
+        perform_create: depending on environment, will save
+        serializer with organization or no organization
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this accounts payable contact.
+        required: true
+      tags:
+      - ap_contacts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APContactRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/APContactRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/APContactRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APContact'
+          description: ''
+    patch:
+      operationId: ap_contacts_partial_update
+      description: |-
+        ClassViewSet with convenience methods to reduce repitition
+        get_queryset_all: depending on environment, will return a
+        queryset with either organization or no organization
+
+        perform_create: depending on environment, will save
+        serializer with organization or no organization
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this accounts payable contact.
+        required: true
+      tags:
+      - ap_contacts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAPContactRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAPContactRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAPContactRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APContact'
+          description: ''
+    delete:
+      operationId: ap_contacts_destroy
+      description: |-
+        ClassViewSet with convenience methods to reduce repitition
+        get_queryset_all: depending on environment, will return a
+        queryset with either organization or no organization
+
+        perform_create: depending on environment, will save
+        serializer with organization or no organization
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this accounts payable contact.
+        required: true
+      tags:
+      - ap_contacts
       responses:
         '204':
           description: No response body
@@ -440,16 +521,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Login'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
         required: true
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -464,10 +544,215 @@ paths:
       tags:
       - auth
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
+          description: No response body
+  /api/bill_load:
+    post:
+      operationId: GmailBillLoad
+      summary: "Bills the load after necessary docs are uploaded.\n        Requires\
+        \ a loadId:int\n    "
+      tags:
+      - bill_load
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendInvoiceRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GmailInvoiceLog'
+          description: ''
+  /api/billing_logs/{load_id}:
+    get:
+      operationId: getGmailLogList
+      summary: Shows the user the billing history of a load.GET method so it'll require
+        a parameter of loadId
+      parameters:
+      - in: query
+        name: loadId
+        schema:
+          type: integer
+      - in: path
+        name: load_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - billing_logs
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GmailInvoiceLog'
+          description: ''
+  /api/carrier-addresses/:
+    get:
+      operationId: carrier_addresses_list
+      description: |-
+        ViewSet for managing CarrierAddress objects.
+        Provides CRUD operations for carrier addresses.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - carrier-addresses
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarrierAddress'
+          description: ''
+    post:
+      operationId: carrier_addresses_create
+      description: |-
+        ViewSet for managing CarrierAddress objects.
+        Provides CRUD operations for carrier addresses.
+      tags:
+      - carrier-addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarrierAddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CarrierAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CarrierAddressRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarrierAddress'
+          description: ''
+  /api/carrier-addresses/{id}/:
+    get:
+      operationId: carrier_addresses_retrieve
+      description: |-
+        ViewSet for managing CarrierAddress objects.
+        Provides CRUD operations for carrier addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this carrier address.
+        required: true
+      tags:
+      - carrier-addresses
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarrierAddress'
+          description: ''
+    put:
+      operationId: carrier_addresses_update
+      description: |-
+        ViewSet for managing CarrierAddress objects.
+        Provides CRUD operations for carrier addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this carrier address.
+        required: true
+      tags:
+      - carrier-addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarrierAddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CarrierAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CarrierAddressRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarrierAddress'
+          description: ''
+    patch:
+      operationId: carrier_addresses_partial_update
+      description: |-
+        ViewSet for managing CarrierAddress objects.
+        Provides CRUD operations for carrier addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this carrier address.
+        required: true
+      tags:
+      - carrier-addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCarrierAddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCarrierAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCarrierAddressRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarrierAddress'
+          description: ''
+    delete:
+      operationId: carrier_addresses_destroy
+      description: |-
+        ViewSet for managing CarrierAddress objects.
+        Provides CRUD operations for carrier addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this carrier address.
+        required: true
+      tags:
+      - carrier-addresses
+      responses:
+        '204':
           description: No response body
   /api/carriers/:
     get:
@@ -475,10 +760,21 @@ paths:
       description: |-
         ViewSet for Carrier model.
         Provides CRUD operations for carriers.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - carriers
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -499,16 +795,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Carrier'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Carrier'
+              $ref: '#/components/schemas/CarrierRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Carrier'
+              $ref: '#/components/schemas/CarrierRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CarrierRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -531,8 +825,6 @@ paths:
         required: true
       tags:
       - carriers
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -558,16 +850,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Carrier'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Carrier'
+              $ref: '#/components/schemas/CarrierRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Carrier'
+              $ref: '#/components/schemas/CarrierRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CarrierRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -593,15 +883,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedCarrier'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedCarrier'
+              $ref: '#/components/schemas/PatchedCarrierRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedCarrier'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedCarrierRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCarrierRequest'
       responses:
         '200':
           content:
@@ -623,8 +911,183 @@ paths:
         required: true
       tags:
       - carriers
-      security:
-      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/check_gmail_auth:
+    get:
+      operationId: checkGmailAuthentication
+      description: |-
+        Checks whether the user is authenticated into the gmail api.
+        Should return either true or false.
+
+        if false, the browser will require client to sign in
+        if true, client is good to make actions using gmail
+      summary: Check auth of the user's Gmail credentials
+      tags:
+      - check_gmail_auth
+      responses:
+        '200':
+          description: User is authenticated with Gmail API.
+        '401':
+          description: User is not authenticated or configuration missing.
+  /api/customer-addresses/:
+    get:
+      operationId: customer_addresses_list
+      description: |-
+        ViewSet for managing CustomerAddress objects.
+        Provides CRUD operations for customer addresses.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - customer-addresses
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerAddress'
+          description: ''
+    post:
+      operationId: customer_addresses_create
+      description: |-
+        ViewSet for managing CustomerAddress objects.
+        Provides CRUD operations for customer addresses.
+      tags:
+      - customer-addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerAddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerAddressRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAddress'
+          description: ''
+  /api/customer-addresses/{id}/:
+    get:
+      operationId: customer_addresses_retrieve
+      description: |-
+        ViewSet for managing CustomerAddress objects.
+        Provides CRUD operations for customer addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer address.
+        required: true
+      tags:
+      - customer-addresses
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAddress'
+          description: ''
+    put:
+      operationId: customer_addresses_update
+      description: |-
+        ViewSet for managing CustomerAddress objects.
+        Provides CRUD operations for customer addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer address.
+        required: true
+      tags:
+      - customer-addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerAddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerAddressRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAddress'
+          description: ''
+    patch:
+      operationId: customer_addresses_partial_update
+      description: |-
+        ViewSet for managing CustomerAddress objects.
+        Provides CRUD operations for customer addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer address.
+        required: true
+      tags:
+      - customer-addresses
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerAddressRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerAddressRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerAddressRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAddress'
+          description: ''
+    delete:
+      operationId: customer_addresses_destroy
+      description: |-
+        ViewSet for managing CustomerAddress objects.
+        Provides CRUD operations for customer addresses.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this customer address.
+        required: true
+      tags:
+      - customer-addresses
       responses:
         '204':
           description: No response body
@@ -636,8 +1099,6 @@ paths:
         Provides CRUD operations for customer AP contacts.
       tags:
       - customer-aps
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -658,16 +1119,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerAP'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CustomerAP'
+              $ref: '#/components/schemas/CustomerAPRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CustomerAP'
+              $ref: '#/components/schemas/CustomerAPRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerAPRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -690,8 +1149,6 @@ paths:
         required: true
       tags:
       - customer-aps
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -717,16 +1174,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerAP'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CustomerAP'
+              $ref: '#/components/schemas/CustomerAPRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CustomerAP'
+              $ref: '#/components/schemas/CustomerAPRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerAPRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -752,15 +1207,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedCustomerAP'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedCustomerAP'
+              $ref: '#/components/schemas/PatchedCustomerAPRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedCustomerAP'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedCustomerAPRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerAPRequest'
       responses:
         '200':
           content:
@@ -782,8 +1235,6 @@ paths:
         required: true
       tags:
       - customer-aps
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -795,8 +1246,6 @@ paths:
         Provides CRUD operations for customer representatives.
       tags:
       - customer-representatives
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -817,16 +1266,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerRepresentative'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CustomerRepresentative'
+              $ref: '#/components/schemas/CustomerRepresentativeRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CustomerRepresentative'
+              $ref: '#/components/schemas/CustomerRepresentativeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentativeRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -849,8 +1296,6 @@ paths:
         required: true
       tags:
       - customer-representatives
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -876,16 +1321,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerRepresentative'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/CustomerRepresentative'
+              $ref: '#/components/schemas/CustomerRepresentativeRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CustomerRepresentative'
+              $ref: '#/components/schemas/CustomerRepresentativeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRepresentativeRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -911,15 +1354,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedCustomerRepresentative'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedCustomerRepresentative'
+              $ref: '#/components/schemas/PatchedCustomerRepresentativeRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedCustomerRepresentative'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedCustomerRepresentativeRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRepresentativeRequest'
       responses:
         '200':
           content:
@@ -941,8 +1382,6 @@ paths:
         required: true
       tags:
       - customer-representatives
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -952,10 +1391,21 @@ paths:
       description: |-
         ViewSet for Customer model.
         Provides CRUD operations for customers.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - customers
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -976,16 +1426,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Customer'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Customer'
+              $ref: '#/components/schemas/CustomerRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Customer'
+              $ref: '#/components/schemas/CustomerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -1008,8 +1456,6 @@ paths:
         required: true
       tags:
       - customers
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1035,16 +1481,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Customer'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Customer'
+              $ref: '#/components/schemas/CustomerRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Customer'
+              $ref: '#/components/schemas/CustomerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1070,15 +1514,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedCustomer'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedCustomer'
+              $ref: '#/components/schemas/PatchedCustomerRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedCustomer'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedCustomerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCustomerRequest'
       responses:
         '200':
           content:
@@ -1100,8 +1542,6 @@ paths:
         required: true
       tags:
       - customers
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -1111,10 +1551,21 @@ paths:
       description: |-
         ViewSet for Driver model.
         Provides CRUD operations for drivers.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
       tags:
       - drivers
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1135,16 +1586,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Driver'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Driver'
+              $ref: '#/components/schemas/DriverRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Driver'
+              $ref: '#/components/schemas/DriverRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DriverRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -1167,8 +1616,6 @@ paths:
         required: true
       tags:
       - drivers
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1194,16 +1641,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Driver'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Driver'
+              $ref: '#/components/schemas/DriverRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Driver'
+              $ref: '#/components/schemas/DriverRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DriverRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1229,15 +1674,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedDriver'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedDriver'
+              $ref: '#/components/schemas/PatchedDriverRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedDriver'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedDriverRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDriverRequest'
       responses:
         '200':
           content:
@@ -1259,11 +1702,61 @@ paths:
         required: true
       tags:
       - drivers
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
+  /api/generate-queue-hash/:
+    post:
+      operationId: generate_queue_hash_create
+      description: |-
+        Either two things will happen:
+            client will want two or more documents merged.
+            - in that case: these documents will share a hash id
+
+            otherwise, client will have multiple queues of each
+            document
+      tags:
+      - generate-queue-hash
+      responses:
+        '200':
+          description: No response body
+  /api/get-presigned-url/:
+    post:
+      operationId: DocumentGetPresignedURL
+      description: |-
+        get the data from the request, create an object_key
+        from the request data (filename and queue_hash_id)
+        accepts
+        request.data:
+            filename = serializers.CharField()
+            content_type = serializers.CharField()
+            category = serializers.CharField()
+            queue_hash_id = serializers.CharField(required=False, allow_null=True)
+
+        View really just modifies the incoming data for the client
+        and adds an s3url (presigned url)
+
+        Response Data:
+        payload: {
+            presigned: str,
+            queue_hash_id[if empty in request.data]
+            object_key
+        }
+      tags:
+      - get-presigned-url
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedUrlRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentGetPresignedURL'
+          description: ''
   /api/legs/:
     get:
       operationId: legs_list
@@ -1273,8 +1766,6 @@ paths:
         Provides standard CRUD operations for legs.
       tags:
       - legs
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1309,6 +1800,10 @@ paths:
                       action: LU
                       po_numbers: PO-12346
                       driver_notes: Rear entrance
+                    shipment_assignment:
+                      id: 10
+                      carrier: 1
+                      driver: 5
                   summary: Leg response with transformed structure
                   description: Response format with leg_id and load_id fields
           description: ''
@@ -1324,7 +1819,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Leg'
+              $ref: '#/components/schemas/LegRequest'
             examples:
               CreateLegRequest:
                 value:
@@ -1346,6 +1841,25 @@ paths:
                 summary: Create a new leg with stops
                 description: Leg with nested stops for a load. Stops are validated
                   for proper action transitions.
+              CreateLegWithShipmentAssignments:
+                value:
+                  stops:
+                  - stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    action: LL
+                  - stop_number: 2
+                    address: 2
+                    start_range: '2024-01-16T08:00:00Z'
+                    end_range: '2024-01-16T12:00:00Z'
+                    action: LU
+                  shipment_assignment:
+                    carrier: 1
+                    driver: 5
+                summary: Create a leg with stops and shipment assignments
+                description: Leg with nested stops and shipment assignments. Shipment
+                  assignments assign a carrier and driver to the leg.
               UpdateLegRequest:
                 value:
                   id: 1
@@ -1384,14 +1898,12 @@ paths:
                 description: Mix of existing stops (with ID) and new stops (without
                   ID). Stops with IDs are updated, stops without IDs are created.
                   Existing stops not included in the payload will be deleted.
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Leg'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Leg'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/LegRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LegRequest'
       responses:
         '201':
           content:
@@ -1424,6 +1936,10 @@ paths:
                       action: LU
                       po_numbers: PO-12346
                       driver_notes: Rear entrance
+                    shipment_assignment:
+                      id: 10
+                      carrier: 1
+                      driver: 5
                   summary: Leg response with transformed structure
                   description: Response format with leg_id and load_id fields
           description: ''
@@ -1443,8 +1959,6 @@ paths:
         required: true
       tags:
       - legs
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1477,6 +1991,10 @@ paths:
                       action: LU
                       po_numbers: PO-12346
                       driver_notes: Rear entrance
+                    shipment_assignment:
+                      id: 10
+                      carrier: 1
+                      driver: 5
                   summary: Leg response with transformed structure
                   description: Response format with leg_id and load_id fields
           description: ''
@@ -1499,7 +2017,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Leg'
+              $ref: '#/components/schemas/LegRequest'
             examples:
               CreateLegRequest:
                 value:
@@ -1521,6 +2039,25 @@ paths:
                 summary: Create a new leg with stops
                 description: Leg with nested stops for a load. Stops are validated
                   for proper action transitions.
+              CreateLegWithShipmentAssignments:
+                value:
+                  stops:
+                  - stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    action: LL
+                  - stop_number: 2
+                    address: 2
+                    start_range: '2024-01-16T08:00:00Z'
+                    end_range: '2024-01-16T12:00:00Z'
+                    action: LU
+                  shipment_assignment:
+                    carrier: 1
+                    driver: 5
+                summary: Create a leg with stops and shipment assignments
+                description: Leg with nested stops and shipment assignments. Shipment
+                  assignments assign a carrier and driver to the leg.
               UpdateLegRequest:
                 value:
                   id: 1
@@ -1559,14 +2096,12 @@ paths:
                 description: Mix of existing stops (with ID) and new stops (without
                   ID). Stops with IDs are updated, stops without IDs are created.
                   Existing stops not included in the payload will be deleted.
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Leg'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Leg'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/LegRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LegRequest'
       responses:
         '200':
           content:
@@ -1599,6 +2134,10 @@ paths:
                       action: LU
                       po_numbers: PO-12346
                       driver_notes: Rear entrance
+                    shipment_assignment:
+                      id: 10
+                      carrier: 1
+                      driver: 5
                   summary: Leg response with transformed structure
                   description: Response format with leg_id and load_id fields
           description: ''
@@ -1621,7 +2160,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedLeg'
+              $ref: '#/components/schemas/PatchedLegRequest'
             examples:
               CreateLegRequest:
                 value:
@@ -1643,6 +2182,25 @@ paths:
                 summary: Create a new leg with stops
                 description: Leg with nested stops for a load. Stops are validated
                   for proper action transitions.
+              CreateLegWithShipmentAssignments:
+                value:
+                  stops:
+                  - stop_number: 1
+                    address: 1
+                    start_range: '2024-01-15T08:00:00Z'
+                    end_range: '2024-01-15T12:00:00Z'
+                    action: LL
+                  - stop_number: 2
+                    address: 2
+                    start_range: '2024-01-16T08:00:00Z'
+                    end_range: '2024-01-16T12:00:00Z'
+                    action: LU
+                  shipment_assignment:
+                    carrier: 1
+                    driver: 5
+                summary: Create a leg with stops and shipment assignments
+                description: Leg with nested stops and shipment assignments. Shipment
+                  assignments assign a carrier and driver to the leg.
               UpdateLegRequest:
                 value:
                   id: 1
@@ -1681,14 +2239,12 @@ paths:
                 description: Mix of existing stops (with ID) and new stops (without
                   ID). Stops with IDs are updated, stops without IDs are created.
                   Existing stops not included in the payload will be deleted.
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedLeg'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedLeg'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedLegRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLegRequest'
       responses:
         '200':
           content:
@@ -1721,6 +2277,10 @@ paths:
                       action: LU
                       po_numbers: PO-12346
                       driver_notes: Rear entrance
+                    shipment_assignment:
+                      id: 10
+                      carrier: 1
+                      driver: 5
                   summary: Leg response with transformed structure
                   description: Response format with leg_id and load_id fields
           description: ''
@@ -1739,11 +2299,33 @@ paths:
         required: true
       tags:
       - legs
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
+  /api/list_shipment_documents/{load_id}/:
+    get:
+      operationId: DocumentListShipmentDocuments
+      parameters:
+      - in: query
+        name: loadId
+        schema:
+          type: string
+      - in: path
+        name: load_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - list_shipment_documents
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PostShipmentDocument'
+          description: ''
   /api/loads/:
     get:
       operationId: loads_list
@@ -1753,8 +2335,6 @@ paths:
         Provides CRUD operations for loads with organization-based filtering.
       tags:
       - loads
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1814,7 +2394,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Load'
+              $ref: '#/components/schemas/LoadRequest'
             examples:
               CreateLoadRequest:
                 value:
@@ -1891,14 +2471,12 @@ paths:
                 description: Mix of existing legs/stops (with ID) and new ones (without
                   ID). Objects with IDs are updated, objects without IDs are created.
                   Existing objects not included in the payload will be deleted.
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Load'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Load'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/LoadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoadRequest'
       responses:
         '201':
           content:
@@ -1960,8 +2538,6 @@ paths:
         required: true
       tags:
       - loads
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2026,7 +2602,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Load'
+              $ref: '#/components/schemas/LoadRequest'
             examples:
               CreateLoadRequest:
                 value:
@@ -2103,14 +2679,12 @@ paths:
                 description: Mix of existing legs/stops (with ID) and new ones (without
                   ID). Objects with IDs are updated, objects without IDs are created.
                   Existing objects not included in the payload will be deleted.
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Load'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Load'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/LoadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoadRequest'
       responses:
         '200':
           content:
@@ -2175,7 +2749,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedLoad'
+              $ref: '#/components/schemas/PatchedLoadRequest'
             examples:
               CreateLoadRequest:
                 value:
@@ -2252,14 +2826,12 @@ paths:
                 description: Mix of existing legs/stops (with ID) and new ones (without
                   ID). Objects with IDs are updated, objects without IDs are created.
                   Existing objects not included in the payload will be deleted.
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedLoad'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedLoad'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedLoadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLoadRequest'
       responses:
         '200':
           content:
@@ -2320,11 +2892,280 @@ paths:
         required: true
       tags:
       - loads
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
+  /api/loads/leg-schedule/:
+    get:
+      operationId: loads_leg_schedule_retrieve
+      description: Returns one row per leg whose OWN stop (pickup or delivery) starts
+        within any of the requested local-day windows. Results are a single flat CHRONOLOGICAL
+        stream ordered by each leg's earliest stop time (earliest first), tie-broken
+        by leg id -- rows are NOT grouped by load, so legs from different loads may
+        interleave. Legs whose own stops all fall outside the windows (or that have
+        no stops) do NOT get their own row, but still appear inside the previous_legs
+        / next_legs of the legs that do, providing full-trip context. Each row carries
+        the load's identity, the leg's owner (carrier + driver, or null when unassigned),
+        the leg's stops, and condensed summaries of the surrounding legs (previous_legs
+        / next_legs). Note sequence_index is the leg's position within its full trip
+        and may be non-contiguous across rows.
+      summary: Flat per-leg schedule for a set of dates
+      parameters:
+      - in: query
+        name: dates
+        schema:
+          type: array
+          items:
+            type: string
+        description: One or more dates (YYYY-MM-DD). May be repeated for non-consecutive
+          days.
+        required: true
+        examples:
+          TwoNon-consecutiveDays:
+            value:
+            - '2025-06-01'
+            - '2025-06-16'
+            summary: Two non-consecutive days
+      - in: query
+        name: timezone
+        schema:
+          type: string
+        description: IANA timezone the dates are expressed in (e.g. America/Los_Angeles).
+        required: true
+        examples:
+          Pacific:
+            value: America/Los_Angeles
+      tags:
+      - loads
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        leg_id:
+                          type: integer
+                        sequence_index:
+                          type: integer
+                          description: 0-based position of this leg within the load,
+                            ordered by earliest stop.
+                        reference_number:
+                          type: string
+                        status:
+                          type: string
+                        bol_number:
+                          type: string
+                        trip_id:
+                          type: string
+                        customer:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: integer
+                            customer_name:
+                              type: string
+                        owner:
+                          type: object
+                          nullable: true
+                          description: This leg's carrier + driver, or null when unassigned.
+                          properties:
+                            carrier:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                carrier_name:
+                                  type: string
+                            driver:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                full_name:
+                                  type: string
+                        is_assigned:
+                          type: boolean
+                        stops:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                              stop_number:
+                                type: integer
+                              address:
+                                type: object
+                                description: Full AddressSerializer object.
+                              start_range:
+                                type: string
+                                format: date-time
+                                nullable: true
+                              end_range:
+                                type: string
+                                format: date-time
+                                nullable: true
+                              action:
+                                type: string
+                              action_display:
+                                type: string
+                              po_numbers:
+                                type: string
+                        previous_legs:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              leg_id:
+                                type: integer
+                              sequence_index:
+                                type: integer
+                              owner:
+                                type: string
+                                description: '"<carrier_name> / <driver_full_name>"
+                                  or "unassigned".'
+                                example: Speedy Freight / John Doe
+                              stops:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    label:
+                                      type: string
+                                      example: Walmart DC - Dallas, TX
+                                    action:
+                                      type: string
+                                      example: LL
+                                    action_display:
+                                      type: string
+                                      example: LIVE LOAD
+                                    start_range:
+                                      type: string
+                                      format: date-time
+                                      nullable: true
+                                    end_range:
+                                      type: string
+                                      format: date-time
+                                      nullable: true
+                        next_legs:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              leg_id:
+                                type: integer
+                              sequence_index:
+                                type: integer
+                              owner:
+                                type: string
+                                description: '"<carrier_name> / <driver_full_name>"
+                                  or "unassigned".'
+                                example: Speedy Freight / John Doe
+                              stops:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    label:
+                                      type: string
+                                      example: Walmart DC - Dallas, TX
+                                    action:
+                                      type: string
+                                      example: LL
+                                    action_display:
+                                      type: string
+                                      example: LIVE LOAD
+                                    start_range:
+                                      type: string
+                                      format: date-time
+                                      nullable: true
+                                    end_range:
+                                      type: string
+                                      format: date-time
+                                      nullable: true
+              examples:
+                ChronologicalStreamInterleavingTwoLoads:
+                  value:
+                    count: 2
+                    results:
+                    - leg_id: 20
+                      sequence_index: 0
+                      reference_number: REF-000456
+                      status: assigned
+                      bol_number: BOL-000456
+                      trip_id: TRIP-77
+                      customer:
+                        id: 9
+                        customer_name: Northwind Traders
+                      owner:
+                        carrier:
+                          id: 30
+                          carrier_name: Cross Country Hauling
+                        driver:
+                          id: 60
+                          full_name: Maria Lopez
+                      is_assigned: true
+                      stops:
+                      - id: 200
+                        stop_number: 1
+                        address:
+                          id: 14
+                          place_name: Costco DC
+                          city: Denver
+                          state: CO
+                        start_range: '2025-06-01T14:00:00Z'
+                        end_range: '2025-06-01T16:00:00Z'
+                        action: LL
+                        action_display: LIVE LOAD
+                        po_numbers: PO-9
+                      previous_legs: []
+                      next_legs: []
+                    - leg_id: 11
+                      sequence_index: 1
+                      reference_number: REF-000123
+                      status: assigned
+                      bol_number: BOL-000123
+                      trip_id: TRIP-99
+                      customer:
+                        id: 5
+                        customer_name: Acme Logistics
+                      owner: null
+                      is_assigned: false
+                      stops:
+                      - id: 101
+                        stop_number: 1
+                        address:
+                          id: 8
+                          place_name: Target DC
+                          city: Phoenix
+                          state: AZ
+                        start_range: '2025-06-01T23:00:00Z'
+                        end_range: null
+                        action: LU
+                        action_display: LIVE UNLOAD
+                        po_numbers: ''
+                      previous_legs:
+                      - leg_id: 10
+                        sequence_index: 0
+                        owner: Speedy Freight / John Doe
+                        stops:
+                        - label: Walmart DC - Dallas, TX
+                          action: LL
+                          action_display: LIVE LOAD
+                          start_range: '2025-05-31T15:00:00Z'
+                          end_range: '2025-05-31T17:00:00Z'
+                      next_legs: []
+                  summary: Chronological stream interleaving two loads
+          description: Flat list of leg rows wrapped in a count/results envelope.
   /api/login:
     post:
       operationId: login_create
@@ -2334,16 +3175,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Login'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Login'
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
         required: true
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -2360,17 +3200,512 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/notify_upload_complete:
+    post:
+      operationId: DocumentNotifyUploadComplete
+      description: |-
+        Use Celery to upload these documents to
+        S3, then save this to PostShipmentDocument
+      tags:
+      - notify_upload_complete
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentNotifyUploadCompleteRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+                description: Unspecified response body
+          description: ''
+  /api/poll_billing/{invoice_log_id}:
+    get:
+      operationId: pollInvoicingStatus
+      description: |-
+        will poll every 2 seconds to check if the
+        invoice was sent
+
+        returns {
+            load: <int>
+            created_on: <date>
+            status: <date>
+        }
+      summary: In the middle of invoicing, poll for email updates if the load has
+        successfully been bill
+      parameters:
+      - in: path
+        name: invoice_log_id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: invoice_log_id
+        schema:
+          type: integer
+      tags:
+      - poll_billing
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GmailInvoiceLog'
+          description: ''
+  /api/poll_postshipment_complete/{session_id}/:
+    get:
+      operationId: DocumentPollPostshipmentComplete
+      description: |-
+        request:
+            session_id
+
+        returns Response with data. Client is looking for
+        UploadLog.status == 'success'
+        wip:
+            return this shape:
+            {
+                session_id: int,
+                upload_logs: hash<[upload_id]: {poll_status, upload_id}>
+            }
+      parameters:
+      - in: query
+        name: sessionId
+        schema:
+          type: integer
+      - in: path
+        name: session_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poll_postshipment_complete
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionUploadReadOnly'
+          description: ''
+  /api/process_gmail_flow:
+    post:
+      operationId: process_gmail_flow_create
+      tags:
+      - process_gmail_flow
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessTokenFlowRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: null
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema: null
+          description: ''
+  /api/ratecon/documents/{document_id}/:
+    get:
+      operationId: RateConDocumentDetail
+      description: Get document details.
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ratecon
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateConDocument'
+          description: ''
+  /api/ratecon/documents/{document_id}/process-pdf/:
+    post:
+      operationId: RateConProcessDocumentPdfMode
+      description: Trigger processing of a single document using direct PDF mode (presigned
+        URL).
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ratecon
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateConProcessDocumentPdfResponse'
+          description: ''
+  /api/ratecon/orphaned/pre-check/:
+    post:
+      operationId: RateConOrphanedPreCheck
+      description: |-
+        Trigger a background check for orphaned presigned-URL entry points.
+
+        The view dispatches a Celery task scoped to the requesting organization and
+        returns 202 immediately. The task creates a new ParsingSession for any
+        unexpired orphaned entrypoints and auto-dispatches document processing.
+        The frontend should poll GET /ratecon/sessions/list/ to discover the
+        newly created session (if any).
+      tags:
+      - ratecon
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateConOrphanedPreCheckResponse'
+          description: ''
+  /api/ratecon/presigned-urls/:
+    post:
+      operationId: RateConPresignedURLs
+      description: Generate presigned S3 PUT URLs and create orphaned entrypoint records.
+      tags:
+      - ratecon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedURLRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PresignedURLRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PresignedURLRequestRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PresignedURLEntryPoint'
+          description: ''
+  /api/ratecon/sessions/{session_id}/:
+    get:
+      operationId: RateConSessionDetail
+      description: Get session details with nested documents.
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ratecon
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParsingSession'
+          description: ''
+  /api/ratecon/sessions/{session_id}/hide/:
+    post:
+      operationId: RateConHideSession
+      description: Hide a parsing session so it no longer appears in the session list.
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ratecon
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateConHideSessionResponse'
+          description: ''
+  /api/ratecon/sessions/{session_id}/process/:
+    post:
+      operationId: RateConProcessSessionTextMode
+      description: Trigger processing of a parsing session (sync or async mode) using
+        raw text.
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ratecon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessSessionRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessSessionRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProcessSessionRequestRequest'
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateConProcessSessionResponse'
+          description: ''
+  /api/ratecon/sessions/{session_id}/process-pdf/:
+    post:
+      operationId: RateConProcessSessionPdf
+      description: Trigger processing of a parsing session using direct PDF mode (presigned
+        URL).
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ratecon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessSessionRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessSessionRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProcessSessionRequestRequest'
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateConProcessSessionPdfResponse'
+          description: ''
+  /api/ratecon/sessions/from-presigned/:
+    post:
+      operationId: RateConSessionFromPresigned
+      description: Create a ParsingSession from already-uploaded presigned entry points.
+      tags:
+      - ratecon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionFromPresignedRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateSessionFromPresignedRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateSessionFromPresignedRequestRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateConSessionFromPresignedResponse'
+          description: ''
+  /api/ratecon/sessions/list/:
+    get:
+      operationId: RateConSessionList
+      description: List active (non-hidden) parsing sessions, newest first, capped
+        at 8.
+      tags:
+      - ratecon
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParsingSession'
+          description: ''
+  /api/register_upload/:
+    post:
+      operationId: DocumentRegisterUpload
+      description: |-
+        Args:
+            request:
+            - session_id
+            - queue_hash_id
+            - filename
+            - object_key
+            - content_type
+            - category
+            - loadId
+        Response:
+            {
+                "uploadId": int
+            }
+      tags:
+      - register_upload
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRegisterUploadRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRegisterUpload'
+          description: ''
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/shipment-assignments/:
     get:
       operationId: shipment_assignments_list
       description: |-
         ViewSet for viewing and editing ShipmentAssignment instances.
 
-        Provides standard CRUD operations for shipment assignments.
+        Provides standard CRUD operations for shipment assignments,
+        plus a bulk modify action for driver swaps and unassigns.
       tags:
       - shipment-assignments
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2385,23 +3720,22 @@ paths:
       description: |-
         ViewSet for viewing and editing ShipmentAssignment instances.
 
-        Provides standard CRUD operations for shipment assignments.
+        Provides standard CRUD operations for shipment assignments,
+        plus a bulk modify action for driver swaps and unassigns.
       tags:
       - shipment-assignments
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ShipmentAssignment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ShipmentAssignment'
+              $ref: '#/components/schemas/ShipmentAssignmentRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ShipmentAssignment'
+              $ref: '#/components/schemas/ShipmentAssignmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -2415,7 +3749,8 @@ paths:
       description: |-
         ViewSet for viewing and editing ShipmentAssignment instances.
 
-        Provides standard CRUD operations for shipment assignments.
+        Provides standard CRUD operations for shipment assignments,
+        plus a bulk modify action for driver swaps and unassigns.
       parameters:
       - in: path
         name: id
@@ -2425,8 +3760,6 @@ paths:
         required: true
       tags:
       - shipment-assignments
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2439,7 +3772,8 @@ paths:
       description: |-
         ViewSet for viewing and editing ShipmentAssignment instances.
 
-        Provides standard CRUD operations for shipment assignments.
+        Provides standard CRUD operations for shipment assignments,
+        plus a bulk modify action for driver swaps and unassigns.
       parameters:
       - in: path
         name: id
@@ -2453,16 +3787,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ShipmentAssignment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ShipmentAssignment'
+              $ref: '#/components/schemas/ShipmentAssignmentRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ShipmentAssignment'
+              $ref: '#/components/schemas/ShipmentAssignmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2475,7 +3807,8 @@ paths:
       description: |-
         ViewSet for viewing and editing ShipmentAssignment instances.
 
-        Provides standard CRUD operations for shipment assignments.
+        Provides standard CRUD operations for shipment assignments,
+        plus a bulk modify action for driver swaps and unassigns.
       parameters:
       - in: path
         name: id
@@ -2489,15 +3822,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedShipmentAssignment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedShipmentAssignment'
+              $ref: '#/components/schemas/PatchedShipmentAssignmentRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedShipmentAssignment'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedShipmentAssignmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedShipmentAssignmentRequest'
       responses:
         '200':
           content:
@@ -2510,7 +3841,8 @@ paths:
       description: |-
         ViewSet for viewing and editing ShipmentAssignment instances.
 
-        Provides standard CRUD operations for shipment assignments.
+        Provides standard CRUD operations for shipment assignments,
+        plus a bulk modify action for driver swaps and unassigns.
       parameters:
       - in: path
         name: id
@@ -2520,10 +3852,101 @@ paths:
         required: true
       tags:
       - shipment-assignments
-      security:
-      - cookieAuth: []
       responses:
         '204':
+          description: No response body
+  /api/shipment-assignments/bulk-delete/:
+    post:
+      operationId: shipment_assignments_bulk_delete_create
+      description: |-
+        Bulk delete shipment assignments.
+
+        Expects: {ids: [1, 2, 3]}
+      tags:
+      - shipment-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentBulkDeleteRequest'
+            examples:
+              BulkDeleteRequest:
+                value:
+                  ids:
+                  - 1
+                  - 2
+                  - 3
+                summary: Delete multiple assignments
+                description: Delete one or more shipment assignments by their IDs.
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentBulkDeleteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentBulkDeleteRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipmentAssignmentBulkDeleteResponse'
+          description: ''
+  /api/shipment-assignments/swap/:
+    post:
+      operationId: shipment_assignments_swap_create
+      description: |-
+        Swap drivers between two shipment assignments.
+
+        Expects: {swap: [{'leg_id': 1, 'driver_id': 2}, {'leg_id': 3, 'driver_id': 4}]}
+      tags:
+      - shipment-assignments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentSwapRequest'
+            examples:
+              SwapDriversRequest:
+                value:
+                  swap:
+                  - leg_id: 1
+                    driver_id: 10
+                  - leg_id: 2
+                    driver_id: 5
+                summary: Swap drivers between two legs
+                description: Simplified swap operation using leg_id and driver_id.
+                  The carrier is automatically preserved from the original assignment.
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentSwapRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ShipmentAssignmentSwapRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipmentAssignmentSwapResponse'
+          description: ''
+  /api/start_session/{invoice_id}/:
+    post:
+      operationId: start_session_create
+      description: |-
+        POST - create a session log for client, send load.pk not invoice_id
+        GET - given an invoice_id, get non-expired session_logs and return the latest
+      parameters:
+      - in: path
+        name: invoice_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - start_session
+      responses:
+        '200':
           description: No response body
   /api/stops/:
     get:
@@ -2549,8 +3972,6 @@ paths:
           type: string
       tags:
       - stops
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2588,7 +4009,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Stop'
+              $ref: '#/components/schemas/StopRequest'
             examples:
               CreateStopRequest:
                 value:
@@ -2614,15 +4035,13 @@ paths:
                   driver_notes: 'Updated: Use rear entrance'
                 summary: Update existing stop with ID
                 description: Include the stop ID when updating an existing stop
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Stop'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Stop'
+              $ref: '#/components/schemas/StopRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StopRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -2662,8 +4081,6 @@ paths:
         required: true
       tags:
       - stops
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2706,7 +4123,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Stop'
+              $ref: '#/components/schemas/StopRequest'
             examples:
               CreateStopRequest:
                 value:
@@ -2732,15 +4149,13 @@ paths:
                   driver_notes: 'Updated: Use rear entrance'
                 summary: Update existing stop with ID
                 description: Include the stop ID when updating an existing stop
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Stop'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Stop'
+              $ref: '#/components/schemas/StopRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StopRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2783,7 +4198,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedStop'
+              $ref: '#/components/schemas/PatchedStopRequest'
             examples:
               CreateStopRequest:
                 value:
@@ -2809,14 +4224,12 @@ paths:
                   driver_notes: 'Updated: Use rear entrance'
                 summary: Update existing stop with ID
                 description: Include the stop ID when updating an existing stop
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedStop'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedStop'
-      security:
-      - cookieAuth: []
+              $ref: '#/components/schemas/PatchedStopRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedStopRequest'
       responses:
         '200':
           content:
@@ -2855,13 +4268,72 @@ paths:
         required: true
       tags:
       - stops
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
+  /api/upload-document/:
+    post:
+      operationId: upload_document_create
+      description: |-
+        - create document context
+        - create document queues attached to this context
+        - add S3UploadImage with their object_keys
+        - send this document_context to celery
+        - return the data
+
+        request.data:
+            filename = serializers.CharField()
+            content_type = serializers.CharField()
+            category = serializers.CharField()
+            queue_hash_id = serializers.CharField(required=False, allow_null=True)
+      tags:
+      - upload-document
+      responses:
+        '200':
+          description: No response body
 components:
   schemas:
+    APContact:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+        email:
+          type: string
+        isDefault:
+          type: boolean
+        organization:
+          type: integer
+          nullable: true
+        customer:
+          type: integer
+      required:
+      - customer
+      - email
+      - name
+    APContactRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 1
+        isDefault:
+          type: boolean
+        organization:
+          type: integer
+          nullable: true
+        customer:
+          type: integer
+      required:
+      - customer
+      - email
+      - name
     ActionEnum:
       enum:
       - LL
@@ -2889,16 +4361,20 @@ components:
         id:
           type: integer
           readOnly: true
+        placeName:
+          type: string
         street:
           type: string
+          maxLength: 300
         city:
           type: string
+          maxLength: 50
         state:
           type: string
           maxLength: 2
-        zip_code:
+        zipCode:
           type: string
-          maxLength: 10
+          maxLength: 12
         country:
           type: string
         latitude:
@@ -2913,10 +4389,52 @@ components:
           nullable: true
       required:
       - city
-      - id
+      - placeName
       - state
       - street
-      - zip_code
+      - zipCode
+    AddressRequest:
+      type: object
+      description: Serializer for the Address model.
+      properties:
+        placeName:
+          type: string
+          minLength: 1
+        street:
+          type: string
+          minLength: 1
+          maxLength: 300
+        city:
+          type: string
+          minLength: 1
+          maxLength: 50
+        state:
+          type: string
+          minLength: 1
+          maxLength: 2
+        zipCode:
+          type: string
+          minLength: 1
+          maxLength: 12
+        country:
+          type: string
+          minLength: 1
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+      required:
+      - city
+      - placeName
+      - state
+      - street
+      - zipCode
     AddressUsageAccumulate:
       type: object
       description: Serializer for the AddressUsageAccumulate model.
@@ -2926,46 +4444,26 @@ components:
           readOnly: true
         address:
           type: integer
-        address_detail:
+        addressDetail:
           allOf:
           - $ref: '#/components/schemas/Address'
           readOnly: true
-        last_used:
+        lastUsed:
           type: string
           format: date-time
       required:
       - address
-      - address_detail
-      - id
-    AddressUsageByCustomer:
+    AddressUsageAccumulateRequest:
       type: object
-      description: Serializer for the AddressUsageByCustomer model.
+      description: Serializer for the AddressUsageAccumulate model.
       properties:
-        id:
-          type: integer
-          readOnly: true
         address:
           type: integer
-        address_detail:
-          allOf:
-          - $ref: '#/components/schemas/Address'
-          readOnly: true
-        customer:
-          type: integer
-        last_used:
+        lastUsed:
           type: string
           format: date-time
-        times_used:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
       required:
       - address
-      - address_detail
-      - customer
-      - id
-      - last_used
     AddressUsageByCustomerAccumulate:
       type: object
       description: Serializer for the AddressUsageByCustomerAccumulate model.
@@ -2975,20 +4473,32 @@ components:
           readOnly: true
         address:
           type: integer
-        address_detail:
+        addressDetail:
           allOf:
           - $ref: '#/components/schemas/Address'
           readOnly: true
         customer:
           type: integer
-        last_used:
+        lastUsed:
           type: string
           format: date-time
       required:
       - address
-      - address_detail
       - customer
-      - id
+    AddressUsageByCustomerAccumulateRequest:
+      type: object
+      description: Serializer for the AddressUsageByCustomerAccumulate model.
+      properties:
+        address:
+          type: integer
+        customer:
+          type: integer
+        lastUsed:
+          type: string
+          format: date-time
+      required:
+      - address
+      - customer
     BillingStatusEnum:
       enum:
       - paperwork_pending
@@ -3013,7 +4523,7 @@ components:
         id:
           type: integer
           readOnly: true
-        carrier_name:
+        carrierName:
           type: string
           maxLength: 255
         phone:
@@ -3023,6 +4533,15 @@ components:
           type: string
           format: email
           maxLength: 254
+        mc:
+          type: string
+          maxLength: 20
+        usdot:
+          type: string
+          maxLength: 20
+        address:
+          type: integer
+          nullable: true
         contractor:
           type: boolean
         drivers:
@@ -3031,9 +4550,55 @@ components:
             $ref: '#/components/schemas/DriverList'
           readOnly: true
       required:
-      - carrier_name
-      - drivers
-      - id
+      - carrierName
+    CarrierAddress:
+      type: object
+      description: Serializer for the CarrierAddress model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        country:
+          type: string
+      required:
+      - city
+      - country
+      - state
+      - street
+      - zipCode
+    CarrierAddressRequest:
+      type: object
+      description: Serializer for the CarrierAddress model.
+      properties:
+        street:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+        state:
+          type: string
+          minLength: 1
+        zipCode:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+      required:
+      - city
+      - country
+      - state
+      - street
+      - zipCode
     CarrierList:
       type: object
       description: Lightweight serializer for Carrier list views.
@@ -3041,21 +4606,82 @@ components:
         id:
           type: integer
           readOnly: true
-        carrier_name:
+        carrierName:
           type: string
           maxLength: 255
         phone:
           type: string
           maxLength: 20
+        mc:
+          type: string
+          maxLength: 20
+        usdot:
+          type: string
+          maxLength: 20
         contractor:
           type: boolean
-        driver_count:
+        driverCount:
           type: string
           readOnly: true
       required:
-      - carrier_name
-      - driver_count
-      - id
+      - carrierName
+    CarrierRequest:
+      type: object
+      description: Serializer for Carrier model.
+      properties:
+        carrierName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        mc:
+          type: string
+          maxLength: 20
+        usdot:
+          type: string
+          maxLength: 20
+        address:
+          type: integer
+          nullable: true
+        contractor:
+          type: boolean
+      required:
+      - carrierName
+    CategoryEnum:
+      enum:
+      - RC
+      - CRC
+      - INVOICE
+      - POD
+      - LUMPER
+      - RECEIPT
+      - OTHER
+      type: string
+      description: |-
+        * `RC` - Customer Rate Confirmation
+        * `CRC` - Carrier Rate Confirmation
+        * `INVOICE` - Invoice
+        * `POD` - Proof of Delivery
+        * `LUMPER` - Lumper
+        * `RECEIPT` - Receipts
+        * `OTHER` - Other
+    CreateSessionFromPresignedRequestRequest:
+      type: object
+      description: Request body for creating a session from already-uploaded presigned
+        entrypoints.
+      properties:
+        entrypointIds:
+          type: array
+          items:
+            type: integer
+      required:
+      - entrypointIds
     Customer:
       type: object
       description: Serializer for Customer model.
@@ -3063,13 +4689,13 @@ components:
         id:
           type: integer
           readOnly: true
-        customer_name:
+        customerName:
           type: string
           maxLength: 255
         address:
           type: integer
           nullable: true
-        phone_number:
+        phoneNumber:
           type: string
           maxLength: 20
         representatives:
@@ -3077,28 +4703,13 @@ components:
           items:
             $ref: '#/components/schemas/CustomerRepresentative'
           readOnly: true
-        ap_emails:
+        apEmails:
           type: array
           items:
             $ref: '#/components/schemas/CustomerAP'
           readOnly: true
-        representative_ids:
-          type: array
-          items:
-            type: integer
-            writeOnly: true
-          writeOnly: true
-        ap_email_ids:
-          type: array
-          items:
-            type: integer
-            writeOnly: true
-          writeOnly: true
       required:
-      - ap_emails
-      - customer_name
-      - id
-      - representatives
+      - customerName
     CustomerAP:
       type: object
       description: Serializer for CustomerAP model.
@@ -3110,14 +4721,77 @@ components:
           type: string
           format: email
           maxLength: 254
-        phone_number:
+        phoneNumber:
           type: string
           maxLength: 20
-        payment_type:
+        paymentType:
           $ref: '#/components/schemas/PaymentTypeEnum'
       required:
       - email
-      - id
+    CustomerAPRequest:
+      type: object
+      description: Serializer for CustomerAP model.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        phoneNumber:
+          type: string
+          maxLength: 20
+        paymentType:
+          $ref: '#/components/schemas/PaymentTypeEnum'
+      required:
+      - email
+    CustomerAddress:
+      type: object
+      description: Serializer for the CustomerAddress model.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        country:
+          type: string
+      required:
+      - city
+      - country
+      - state
+      - street
+      - zipCode
+    CustomerAddressRequest:
+      type: object
+      description: Serializer for the CustomerAddress model.
+      properties:
+        street:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+        state:
+          type: string
+          minLength: 1
+        zipCode:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+      required:
+      - city
+      - country
+      - state
+      - street
+      - zipCode
     CustomerList:
       type: object
       description: Lightweight serializer for Customer list views.
@@ -3125,15 +4799,14 @@ components:
         id:
           type: integer
           readOnly: true
-        customer_name:
+        customerName:
           type: string
           maxLength: 255
-        phone_number:
+        phoneNumber:
           type: string
           maxLength: 20
       required:
-      - customer_name
-      - id
+      - customerName
     CustomerRepresentative:
       type: object
       description: Serializer for CustomerRepresentative model.
@@ -3148,12 +4821,125 @@ components:
           type: string
           format: email
           maxLength: 254
-        phone_number:
+        phoneNumber:
           type: string
           maxLength: 20
       required:
-      - id
       - name
+    CustomerRepresentativeRequest:
+      type: object
+      description: Serializer for CustomerRepresentative model.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phoneNumber:
+          type: string
+          maxLength: 20
+      required:
+      - name
+    CustomerRequest:
+      type: object
+      description: Serializer for Customer model.
+      properties:
+        customerName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        address:
+          type: integer
+          nullable: true
+        phoneNumber:
+          type: string
+          maxLength: 20
+        representativeIds:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+        apEmailIds:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+      required:
+      - customerName
+    DocumentGetPresignedURL:
+      type: object
+      properties:
+        presigned:
+          type: string
+        objectKey:
+          type: string
+        filename:
+          type: string
+        contentType:
+          type: string
+        category:
+          type: string
+        queueHashId:
+          type: string
+          nullable: true
+      required:
+      - category
+      - contentType
+      - filename
+      - objectKey
+      - presigned
+    DocumentNotifyUploadCompleteRequest:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+      required:
+      - sessionId
+    DocumentRegisterUpload:
+      type: object
+      properties:
+        uploadId:
+          type: integer
+      required:
+      - uploadId
+    DocumentRegisterUploadRequest:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+        loadId:
+          type: integer
+          writeOnly: true
+        queueHashId:
+          type: string
+          minLength: 1
+        objectKey:
+          type: string
+          minLength: 1
+        filename:
+          type: string
+          minLength: 1
+        contentType:
+          type: string
+          minLength: 1
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        createdOn:
+          type: string
+          format: date-time
+      required:
+      - category
+      - contentType
+      - filename
+      - loadId
+      - objectKey
+      - queueHashId
+      - sessionId
     Driver:
       type: object
       description: Serializer for Driver model.
@@ -3161,16 +4947,16 @@ components:
         id:
           type: integer
           readOnly: true
-        first_name:
+        firstName:
           type: string
           maxLength: 100
-        last_name:
+        lastName:
           type: string
           maxLength: 100
-        full_name:
+        fullName:
           type: string
           readOnly: true
-        phone_number:
+        phoneNumber:
           type: string
           maxLength: 20
         email:
@@ -3184,11 +4970,9 @@ components:
           type: integer
           nullable: true
       required:
-      - first_name
-      - full_name
-      - id
-      - last_name
-      - phone_number
+      - firstName
+      - lastName
+      - phoneNumber
     DriverList:
       type: object
       description: Lightweight serializer for Driver list views.
@@ -3196,19 +4980,94 @@ components:
         id:
           type: integer
           readOnly: true
-        full_name:
+        fullName:
           type: string
           readOnly: true
-        phone_number:
+        phoneNumber:
           type: string
           maxLength: 20
         carrier:
           type: integer
           nullable: true
       required:
-      - full_name
-      - id
-      - phone_number
+      - phoneNumber
+    DriverListRequest:
+      type: object
+      description: Lightweight serializer for Driver list views.
+      properties:
+        phoneNumber:
+          type: string
+          minLength: 1
+          maxLength: 20
+        carrier:
+          type: integer
+          nullable: true
+      required:
+      - phoneNumber
+    DriverRequest:
+      type: object
+      description: Serializer for Driver model.
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        phoneNumber:
+          type: string
+          minLength: 1
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: integer
+          nullable: true
+        carrier:
+          type: integer
+          nullable: true
+      required:
+      - firstName
+      - lastName
+      - phoneNumber
+    GmailInvoiceLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/GmailInvoiceLogStatusEnum'
+        createdOn:
+          type: string
+          format: date-time
+        finished:
+          type: string
+          format: date-time
+          nullable: true
+        errorMessage:
+          type: string
+        organization:
+          type: integer
+          nullable: true
+        load:
+          type: integer
+      required:
+      - load
+    GmailInvoiceLogStatusEnum:
+      enum:
+      - processing
+      - success
+      - error
+      type: string
+      description: |-
+        * `processing` - PROCESSING
+        * `success` - SUCCESS
+        * `error` - ERROR
     Leg:
       type: object
       description: |-
@@ -3219,19 +5078,39 @@ components:
         - Order Preservation: Processes nested relations in the order defined.
         - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
       properties:
-        leg_id:
+        id:
           type: integer
-          readOnly: true
-        load_id:
+        load:
           type: integer
           readOnly: true
         stops:
           type: array
           items:
             $ref: '#/components/schemas/Stop'
-      required:
-      - leg_id
-      - load_id
+        shipmentAssignment:
+          allOf:
+          - $ref: '#/components/schemas/ShipmentAssignmentNested'
+          nullable: true
+    LegRequest:
+      type: object
+      description: |-
+        Declarative mixin that handles nested writes automatically using 'nested_relations'.
+
+        Features:
+        - Atomic Transactions: Entire operation is all-or-nothing.
+        - Order Preservation: Processes nested relations in the order defined.
+        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
+      properties:
+        id:
+          type: integer
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/StopRequest'
+        shipmentAssignment:
+          allOf:
+          - $ref: '#/components/schemas/ShipmentAssignmentNestedRequest'
+          nullable: true
     Load:
       type: object
       description: |-
@@ -3245,18 +5124,18 @@ components:
         id:
           type: integer
           readOnly: true
-        reference_number:
+        referenceNumber:
           type: string
-        bol_number:
+        bolNumber:
           type: string
         customer:
           type: integer
           nullable: true
         status:
-          $ref: '#/components/schemas/StatusEnum'
-        billing_status:
+          $ref: '#/components/schemas/LoadStatusEnum'
+        billingStatus:
           $ref: '#/components/schemas/BillingStatusEnum'
-        trailer_type:
+        trailerType:
           oneOf:
           - $ref: '#/components/schemas/TrailerTypeEnum'
           - $ref: '#/components/schemas/BlankEnum'
@@ -3264,182 +5143,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Leg'
-        created_at:
+        createdAt:
           type: string
           format: date-time
           readOnly: true
-        updated_at:
+        updatedAt:
           type: string
           format: date-time
           readOnly: true
-      required:
-      - created_at
-      - id
-      - updated_at
-    Login:
-      type: object
-      properties:
-        email:
-          type: string
-        password:
-          type: string
-      required:
-      - email
-      - password
-    PatchedAddress:
-      type: object
-      description: Serializer for the Address model.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        street:
-          type: string
-        city:
-          type: string
-        state:
-          type: string
-          maxLength: 2
-        zip_code:
-          type: string
-          maxLength: 10
-        country:
-          type: string
-        latitude:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
-          nullable: true
-        longitude:
-          type: string
-          format: decimal
-          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
-          nullable: true
-    PatchedCarrier:
-      type: object
-      description: Serializer for Carrier model.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        carrier_name:
-          type: string
-          maxLength: 255
-        phone:
-          type: string
-          maxLength: 20
-        email:
-          type: string
-          format: email
-          maxLength: 254
-        contractor:
-          type: boolean
-        drivers:
-          type: array
-          items:
-            $ref: '#/components/schemas/DriverList'
-          readOnly: true
-    PatchedCustomer:
-      type: object
-      description: Serializer for Customer model.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        customer_name:
-          type: string
-          maxLength: 255
-        address:
-          type: integer
-          nullable: true
-        phone_number:
-          type: string
-          maxLength: 20
-        representatives:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerRepresentative'
-          readOnly: true
-        ap_emails:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerAP'
-          readOnly: true
-        representative_ids:
-          type: array
-          items:
-            type: integer
-            writeOnly: true
-          writeOnly: true
-        ap_email_ids:
-          type: array
-          items:
-            type: integer
-            writeOnly: true
-          writeOnly: true
-    PatchedCustomerAP:
-      type: object
-      description: Serializer for CustomerAP model.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        email:
-          type: string
-          format: email
-          maxLength: 254
-        phone_number:
-          type: string
-          maxLength: 20
-        payment_type:
-          $ref: '#/components/schemas/PaymentTypeEnum'
-    PatchedCustomerRepresentative:
-      type: object
-      description: Serializer for CustomerRepresentative model.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        name:
-          type: string
-          maxLength: 255
-        email:
-          type: string
-          format: email
-          maxLength: 254
-        phone_number:
-          type: string
-          maxLength: 20
-    PatchedDriver:
-      type: object
-      description: Serializer for Driver model.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        first_name:
-          type: string
-          maxLength: 100
-        last_name:
-          type: string
-          maxLength: 100
-        full_name:
-          type: string
-          readOnly: true
-        phone_number:
-          type: string
-          maxLength: 20
-        email:
-          type: string
-          format: email
-          maxLength: 254
-        address:
-          type: integer
-          nullable: true
-        carrier:
-          type: integer
-          nullable: true
-    PatchedLeg:
+    LoadRequest:
       type: object
       description: |-
         Declarative mixin that handles nested writes automatically using 'nested_relations'.
@@ -3449,157 +5161,26 @@ components:
         - Order Preservation: Processes nested relations in the order defined.
         - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
       properties:
-        leg_id:
-          type: integer
-          readOnly: true
-        load_id:
-          type: integer
-          readOnly: true
-        stops:
-          type: array
-          items:
-            $ref: '#/components/schemas/Stop'
-    PatchedLoad:
-      type: object
-      description: |-
-        Declarative mixin that handles nested writes automatically using 'nested_relations'.
-
-        Features:
-        - Atomic Transactions: Entire operation is all-or-nothing.
-        - Order Preservation: Processes nested relations in the order defined.
-        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        reference_number:
+        referenceNumber:
           type: string
-        bol_number:
+        bolNumber:
           type: string
         customer:
           type: integer
           nullable: true
         status:
-          $ref: '#/components/schemas/StatusEnum'
-        billing_status:
+          $ref: '#/components/schemas/LoadStatusEnum'
+        billingStatus:
           $ref: '#/components/schemas/BillingStatusEnum'
-        trailer_type:
+        trailerType:
           oneOf:
           - $ref: '#/components/schemas/TrailerTypeEnum'
           - $ref: '#/components/schemas/BlankEnum'
         legs:
           type: array
           items:
-            $ref: '#/components/schemas/Leg'
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-    PatchedShipmentAssignment:
-      type: object
-      description: |-
-        Serializer for the ShipmentAssignment model.
-
-        Accepts primary keys for carrier, driver, and leg on input.
-        Returns full nested JSON for carrier and driver on output.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        carrier:
-          type: integer
-        driver:
-          type: integer
-        leg:
-          type: integer
-          writeOnly: true
-    PatchedStop:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        leg:
-          type: integer
-          readOnly: true
-        stop_number:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-          description: Order of this stop within the leg
-        start_range:
-          type: string
-          format: date-time
-          description: The earliest time the stop can occur
-        end_range:
-          type: string
-          format: date-time
-          nullable: true
-          description: The latest time the stop can occur (optional)
-        timestamp:
-          type: string
-          format: date-time
-          description: When this stop was created
-        action:
-          allOf:
-          - $ref: '#/components/schemas/ActionEnum'
-          description: |-
-            The type of action to be performed at this stop
-
-            * `LL` - LIVE LOAD
-            * `LU` - LIVE UNLOAD
-            * `HL` - HOOK LOADED
-            * `LD` - DROP LOADED
-            * `EMPP` - EMPTY PICKUP
-            * `EMPD` - EMPTY DROP
-            * `HUBP` - HUB PICKUP
-            * `HUBD` - HUB DROPOFF
-        po_numbers:
-          type: string
-          description: Purchase order numbers associated with this stop
-        driver_notes:
-          type: string
-          description: Notes for the driver regarding this stop
-        address:
-          type: integer
-          description: The address where this stop takes place
-    PaymentTypeEnum:
-      enum:
-      - quickpay
-      - standard
-      type: string
-      description: |-
-        * `quickpay` - Quick Pay
-        * `standard` - Standard Pay
-    ShipmentAssignment:
-      type: object
-      description: |-
-        Serializer for the ShipmentAssignment model.
-
-        Accepts primary keys for carrier, driver, and leg on input.
-        Returns full nested JSON for carrier and driver on output.
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        carrier:
-          type: integer
-        driver:
-          type: integer
-        leg:
-          type: integer
-          writeOnly: true
-      required:
-      - carrier
-      - driver
-      - id
-      - leg
-    StatusEnum:
+            $ref: '#/components/schemas/LegRequest'
+    LoadStatusEnum:
       enum:
       - pending
       - assigned
@@ -3623,26 +5204,359 @@ components:
         * `at_hub` - At Hub
         * `complete` - Complete
         * `tonu` - TONU
-    Stop:
+    Login:
       type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+      - email
+      - password
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - email
+      - password
+    ModeEnum:
+      enum:
+      - sync
+      - async
+      type: string
+      description: |-
+        * `sync` - sync
+        * `async` - async
+    ParsingSession:
+      type: object
+      description: Serializer for parsing sessions with nested documents and computed
+        progress fields.
       properties:
         id:
           type: integer
           readOnly: true
-        leg:
+        status:
+          $ref: '#/components/schemas/ParsingSessionStatusEnum'
+        isHidden:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        totalDocuments:
           type: integer
           readOnly: true
-        stop_number:
+        progress:
+          type: number
+          format: double
+          readOnly: true
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateConDocument'
+          readOnly: true
+    ParsingSessionStatusEnum:
+      enum:
+      - uploading
+      - processing
+      - completed
+      - partially_failed
+      - failed
+      type: string
+      description: |-
+        * `uploading` - Uploading
+        * `processing` - Processing
+        * `completed` - Completed
+        * `partially_failed` - Partially Failed
+        * `failed` - Failed
+    PatchedAPContactRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 1
+        isDefault:
+          type: boolean
+        organization:
           type: integer
-          maximum: 9223372036854775807
+          nullable: true
+        customer:
+          type: integer
+    PatchedAddressRequest:
+      type: object
+      description: Serializer for the Address model.
+      properties:
+        placeName:
+          type: string
+          minLength: 1
+        street:
+          type: string
+          minLength: 1
+          maxLength: 300
+        city:
+          type: string
+          minLength: 1
+          maxLength: 50
+        state:
+          type: string
+          minLength: 1
+          maxLength: 2
+        zipCode:
+          type: string
+          minLength: 1
+          maxLength: 12
+        country:
+          type: string
+          minLength: 1
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,7})?$
+          nullable: true
+    PatchedCarrierAddressRequest:
+      type: object
+      description: Serializer for the CarrierAddress model.
+      properties:
+        street:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+        state:
+          type: string
+          minLength: 1
+        zipCode:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+    PatchedCarrierRequest:
+      type: object
+      description: Serializer for Carrier model.
+      properties:
+        carrierName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        mc:
+          type: string
+          maxLength: 20
+        usdot:
+          type: string
+          maxLength: 20
+        address:
+          type: integer
+          nullable: true
+        contractor:
+          type: boolean
+    PatchedCustomerAPRequest:
+      type: object
+      description: Serializer for CustomerAP model.
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        phoneNumber:
+          type: string
+          maxLength: 20
+        paymentType:
+          $ref: '#/components/schemas/PaymentTypeEnum'
+    PatchedCustomerAddressRequest:
+      type: object
+      description: Serializer for the CustomerAddress model.
+      properties:
+        street:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+        state:
+          type: string
+          minLength: 1
+        zipCode:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+    PatchedCustomerRepresentativeRequest:
+      type: object
+      description: Serializer for CustomerRepresentative model.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phoneNumber:
+          type: string
+          maxLength: 20
+    PatchedCustomerRequest:
+      type: object
+      description: Serializer for Customer model.
+      properties:
+        customerName:
+          type: string
+          minLength: 1
+          maxLength: 255
+        address:
+          type: integer
+          nullable: true
+        phoneNumber:
+          type: string
+          maxLength: 20
+        representativeIds:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+        apEmailIds:
+          type: array
+          items:
+            type: integer
+            writeOnly: true
+          writeOnly: true
+    PatchedDriverRequest:
+      type: object
+      description: Serializer for Driver model.
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        phoneNumber:
+          type: string
+          minLength: 1
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        address:
+          type: integer
+          nullable: true
+        carrier:
+          type: integer
+          nullable: true
+    PatchedLegRequest:
+      type: object
+      description: |-
+        Declarative mixin that handles nested writes automatically using 'nested_relations'.
+
+        Features:
+        - Atomic Transactions: Entire operation is all-or-nothing.
+        - Order Preservation: Processes nested relations in the order defined.
+        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
+      properties:
+        id:
+          type: integer
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/StopRequest'
+        shipmentAssignment:
+          allOf:
+          - $ref: '#/components/schemas/ShipmentAssignmentNestedRequest'
+          nullable: true
+    PatchedLoadRequest:
+      type: object
+      description: |-
+        Declarative mixin that handles nested writes automatically using 'nested_relations'.
+
+        Features:
+        - Atomic Transactions: Entire operation is all-or-nothing.
+        - Order Preservation: Processes nested relations in the order defined.
+        - Error Handling: Catches IntegrityErrors and re-raises them as ValidationErrors.
+      properties:
+        referenceNumber:
+          type: string
+        bolNumber:
+          type: string
+        customer:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/LoadStatusEnum'
+        billingStatus:
+          $ref: '#/components/schemas/BillingStatusEnum'
+        trailerType:
+          oneOf:
+          - $ref: '#/components/schemas/TrailerTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        legs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LegRequest'
+    PatchedShipmentAssignmentRequest:
+      type: object
+      description: |-
+        Serializer for the ShipmentAssignment model.
+
+        Accepts primary keys for carrier, driver, and leg on input.
+        Returns full nested JSON for carrier and driver on output.
+      properties:
+        carrier:
+          type: integer
+        driver:
+          type: integer
+        leg:
+          type: integer
+          writeOnly: true
+    PatchedStopRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        address:
+          type: integer
+        stopNumber:
+          type: integer
+          maximum: 2147483647
           minimum: 0
-          format: int64
           description: Order of this stop within the leg
-        start_range:
+        startRange:
           type: string
           format: date-time
           description: The earliest time the stop can occur
-        end_range:
+        endRange:
           type: string
           format: date-time
           nullable: true
@@ -3665,22 +5579,547 @@ components:
             * `EMPD` - EMPTY DROP
             * `HUBP` - HUB PICKUP
             * `HUBD` - HUB DROPOFF
-        po_numbers:
+        poNumbers:
           type: string
           description: Purchase order numbers associated with this stop
-        driver_notes:
+        driverNotes:
           type: string
           description: Notes for the driver regarding this stop
+    PaymentTypeEnum:
+      enum:
+      - quickpay
+      - standard
+      type: string
+      description: |-
+        * `quickpay` - Quick Pay
+        * `standard` - Standard Pay
+    PostShipmentDocument:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        objectKey:
+          type: string
+        filename:
+          type: string
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        contentType:
+          type: string
+        createdOn:
+          type: string
+          format: date-time
+        content:
+          type: string
+        load:
+          type: integer
+          nullable: true
+      required:
+      - category
+      - contentType
+      - filename
+      - objectKey
+    PresignedURLEntryPoint:
+      type: object
+      description: Response serializer for a single presigned URL entry point.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        presignedUrl:
+          type: string
+        s3Key:
+          type: string
+        filename:
+          type: string
+        expiration:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/PresignedURLEntryPointStatusEnum'
+      required:
+      - expiration
+      - filename
+      - presignedUrl
+      - s3Key
+    PresignedURLEntryPointStatusEnum:
+      enum:
+      - orphaned
+      - processed
+      type: string
+      description: |-
+        * `orphaned` - Orphaned
+        * `processed` - Processed
+    PresignedURLFileItemRequest:
+      type: object
+      description: A single file item in a presigned URL batch request.
+      properties:
+        filename:
+          type: string
+          minLength: 1
+        mimeType:
+          type: string
+          minLength: 1
+          default: application/pdf
+      required:
+      - filename
+    PresignedURLRequestRequest:
+      type: object
+      description: Request body for obtaining presigned upload URLs for a batch of
+        files.
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/PresignedURLFileItemRequest'
+      required:
+      - files
+    PresignedUrlRequest:
+      type: object
+      properties:
+        filename:
+          type: string
+          minLength: 1
+        contentType:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+        queueHashId:
+          type: string
+          nullable: true
+          minLength: 1
+      required:
+      - category
+      - contentType
+      - filename
+    ProcessSessionRequestRequest:
+      type: object
+      description: Request body for triggering session processing.
+      properties:
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/ModeEnum'
+          default: async
+    ProcessTokenFlowRequestRequest:
+      type: object
+      properties:
+        authCode:
+          type: string
+          minLength: 1
+        requestUri:
+          type: string
+          minLength: 1
+      required:
+      - authCode
+      - requestUri
+    RateConDocument:
+      type: object
+      description: Serializer for rate confirmation documents.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        session:
+          type: integer
+        status:
+          $ref: '#/components/schemas/RateConDocumentStatusEnum'
+        originalFilename:
+          type: string
+        s3Key:
+          type: string
+        fileSize:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        mimeType:
+          type: string
+          maxLength: 100
+        errorMessage:
+          type: string
+        celeryTaskId:
+          type: string
+          maxLength: 255
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        load:
+          type: integer
+          nullable: true
+        classificationPassed:
+          type: boolean
+          nullable: true
+        classificationReason:
+          type: string
+      required:
+      - originalFilename
+      - s3Key
+      - session
+    RateConDocumentStatusEnum:
+      enum:
+      - uploading
+      - pending
+      - processing
+      - parsed
+      - misclassified
+      - failed
+      type: string
+      description: |-
+        * `uploading` - Uploading
+        * `pending` - Pending
+        * `processing` - Processing
+        * `parsed` - Parsed
+        * `misclassified` - Misclassified
+        * `failed` - Failed
+    RateConHideSessionResponse:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+        isHidden:
+          type: boolean
+      required:
+      - isHidden
+      - sessionId
+    RateConOrphanedPreCheckResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    RateConProcessDocumentPdfResponse:
+      type: object
+      properties:
+        documentId:
+          type: integer
+        message:
+          type: string
+      required:
+      - documentId
+      - message
+    RateConProcessSessionPdfResponse:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+        mode:
+          type: string
+        message:
+          type: string
+      required:
+      - message
+      - mode
+      - sessionId
+    RateConProcessSessionResponse:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+        mode:
+          type: string
+        message:
+          type: string
+      required:
+      - message
+      - mode
+      - sessionId
+    RateConSessionFromPresignedResponse:
+      type: object
+      properties:
+        sessionId:
+          type: integer
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/RateConDocument'
+      required:
+      - documents
+      - sessionId
+    SendInvoiceRequestRequest:
+      type: object
+      properties:
+        loadId:
+          type: integer
+      required:
+      - loadId
+    SessionUploadReadOnly:
+      type: object
+      properties:
+        postDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostShipmentDocument'
+          readOnly: true
+        sessionId:
+          type: integer
+        uploadLogs:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/UploadLog'
+          readOnly: true
+      required:
+      - sessionId
+    ShipmentAssignment:
+      type: object
+      description: |-
+        Serializer for the ShipmentAssignment model.
+
+        Accepts primary keys for carrier, driver, and leg on input.
+        Returns full nested JSON for carrier and driver on output.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        carrier:
+          type: integer
+        driver:
+          type: integer
+      required:
+      - carrier
+      - driver
+    ShipmentAssignmentBulkDeleteRequest:
+      type: object
+      description: Serializer for bulk delete action.
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+      required:
+      - ids
+    ShipmentAssignmentBulkDeleteResponse:
+      type: object
+      description: Response serializer for bulk delete action.
+      properties:
+        deletedCount:
+          type: integer
+        deletedIds:
+          type: array
+          items:
+            type: integer
+      required:
+      - deletedCount
+      - deletedIds
+    ShipmentAssignmentNested:
+      type: object
+      description: |-
+        Lightweight serializer for nested shipment assignments within LegSerializer.
+
+        Accepts only carrier and driver as primary keys. The leg field is
+        automatically set by the AutoNestedMixin when creating/updating.
+
+        Uses FlexiblePrimaryKeyRelatedField to accept both PKs and model instances.
+        This allows the serializer to be re-validated after the parent serializer
+        has already converted PKs to instances during nested updates.
+      properties:
+        id:
+          type: integer
+        carrier:
+          type: integer
+        driver:
+          type: integer
+      required:
+      - carrier
+      - driver
+    ShipmentAssignmentNestedRequest:
+      type: object
+      description: |-
+        Lightweight serializer for nested shipment assignments within LegSerializer.
+
+        Accepts only carrier and driver as primary keys. The leg field is
+        automatically set by the AutoNestedMixin when creating/updating.
+
+        Uses FlexiblePrimaryKeyRelatedField to accept both PKs and model instances.
+        This allows the serializer to be re-validated after the parent serializer
+        has already converted PKs to instances during nested updates.
+      properties:
+        id:
+          type: integer
+        carrier:
+          type: integer
+        driver:
+          type: integer
+      required:
+      - carrier
+      - driver
+    ShipmentAssignmentRequest:
+      type: object
+      description: |-
+        Serializer for the ShipmentAssignment model.
+
+        Accepts primary keys for carrier, driver, and leg on input.
+        Returns full nested JSON for carrier and driver on output.
+      properties:
+        carrier:
+          type: integer
+        driver:
+          type: integer
+        leg:
+          type: integer
+          writeOnly: true
+      required:
+      - carrier
+      - driver
+      - leg
+    ShipmentAssignmentSwapItemRequest:
+      type: object
+      description: Serializer for individual swap items.
+      properties:
+        legId:
+          type: integer
+        driverId:
+          type: integer
+      required:
+      - driverId
+      - legId
+    ShipmentAssignmentSwapRequest:
+      type: object
+      description: |-
+        Serializer for the swap action.
+
+        Expects: {swap: [{'leg_id': 1, 'driver_id': 2}, {'leg_id': 3, 'driver_id': 4}]}
+      properties:
+        swap:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShipmentAssignmentSwapItemRequest'
+      required:
+      - swap
+    ShipmentAssignmentSwapResponse:
+      type: object
+      description: Response serializer for the swap action.
+      properties:
+        deletedCount:
+          type: integer
+        deletedIds:
+          type: array
+          items:
+            type: integer
+        created:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShipmentAssignment'
+        createdCount:
+          type: integer
+      required:
+      - created
+      - createdCount
+      - deletedCount
+      - deletedIds
+    Stop:
+      type: object
+      properties:
+        id:
+          type: integer
+        leg:
+          type: integer
+          readOnly: true
         address:
           type: integer
-          description: The address where this stop takes place
+        stopNumber:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Order of this stop within the leg
+        startRange:
+          type: string
+          format: date-time
+          description: The earliest time the stop can occur
+        endRange:
+          type: string
+          format: date-time
+          nullable: true
+          description: The latest time the stop can occur (optional)
+        timestamp:
+          type: string
+          format: date-time
+          description: When this stop was created
+        action:
+          allOf:
+          - $ref: '#/components/schemas/ActionEnum'
+          description: |-
+            The type of action to be performed at this stop
+
+            * `LL` - LIVE LOAD
+            * `LU` - LIVE UNLOAD
+            * `HL` - HOOK LOADED
+            * `LD` - DROP LOADED
+            * `EMPP` - EMPTY PICKUP
+            * `EMPD` - EMPTY DROP
+            * `HUBP` - HUB PICKUP
+            * `HUBD` - HUB DROPOFF
+        poNumbers:
+          type: string
+          description: Purchase order numbers associated with this stop
+        driverNotes:
+          type: string
+          description: Notes for the driver regarding this stop
       required:
       - action
       - address
-      - id
-      - leg
-      - start_range
-      - stop_number
+      - startRange
+      - stopNumber
+    StopRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        address:
+          type: integer
+        stopNumber:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Order of this stop within the leg
+        startRange:
+          type: string
+          format: date-time
+          description: The earliest time the stop can occur
+        endRange:
+          type: string
+          format: date-time
+          nullable: true
+          description: The latest time the stop can occur (optional)
+        timestamp:
+          type: string
+          format: date-time
+          description: When this stop was created
+        action:
+          allOf:
+          - $ref: '#/components/schemas/ActionEnum'
+          description: |-
+            The type of action to be performed at this stop
+
+            * `LL` - LIVE LOAD
+            * `LU` - LIVE UNLOAD
+            * `HL` - HOOK LOADED
+            * `LD` - DROP LOADED
+            * `EMPP` - EMPTY PICKUP
+            * `EMPD` - EMPTY DROP
+            * `HUBP` - HUB PICKUP
+            * `HUBD` - HUB DROPOFF
+        poNumbers:
+          type: string
+          description: Purchase order numbers associated with this stop
+        driverNotes:
+          type: string
+          description: Notes for the driver regarding this stop
+      required:
+      - action
+      - address
+      - startRange
+      - stopNumber
     TrailerTypeEnum:
       enum:
       - SMALL_20
@@ -3697,8 +6136,14 @@ components:
         * `MEDIUM_45` - 45'
         * `LARGE_48` - 48'
         * `LARGE_53` - 53'
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: sessionid
+    UploadLog:
+      type: object
+      properties:
+        uploadId:
+          type: integer
+          readOnly: true
+        pollStatus:
+          type: string
+          readOnly: true
+        message:
+          type: string

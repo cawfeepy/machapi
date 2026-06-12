@@ -67,7 +67,6 @@ from machtms.backend.RateConParser import (
     DocumentStatus,
     ParsingSession,
     RateConDocument,
-    ParsedRateCon,
 )
 
 # GmailAPI models
@@ -124,7 +123,6 @@ __all__ = [
     'DocumentStatus',
     'ParsingSession',
     'RateConDocument',
-    'ParsedRateCon',
     # GmailAPI
     'GoogleCredentials',
     'GmailBillingConfig',

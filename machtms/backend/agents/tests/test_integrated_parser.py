@@ -15,7 +15,6 @@ from machtms.backend.auth.models import Organization, OrganizationUser, UserProf
 from machtms.backend.RateConParser.models import (
     ParsingSession,
     RateConDocument,
-    ParsedRateCon,
     DocumentStatus,
     SessionStatus,
 )
@@ -168,15 +167,14 @@ class IntegratedRateConParserTest(TransactionTestCase):
             f"Expected PARSED but got {doc.status}. Error: {doc.error_message}",
         )
 
-        parsed = ParsedRateCon.objects.get(document=doc)
-        self.assertIsNotNone(parsed)
+        doc = RateConDocument.objects.select_related('load').get(pk=document_id)
         self.assertIsNotNone(
-            parsed.load,
-            "ParsedRateCon.load should not be null after PARSED status",
+            doc.load,
+            "RateConDocument.load should not be null after PARSED status",
         )
 
         # Print full load details
-        load = parsed.load
+        load = doc.load
         print(f"\n{'='*60}")
         print(f"LOAD DETAILS (ID: {load.pk})")
         print(f"{'='*60}")
@@ -202,9 +200,9 @@ class IntegratedRateConParserTest(TransactionTestCase):
                 if stop.driver_notes:
                     print(f"      Notes:      {stop.driver_notes}")
 
-        print(f"\n  ParsedRateCon:")
-        print(f"    Classification passed: {parsed.classification_passed}")
-        print(f"    Classification reason: {parsed.classification_reason}")
+        print(f"\n  Classification:")
+        print(f"    Classification passed: {doc.classification_passed}")
+        print(f"    Classification reason: {doc.classification_reason}")
         print(f"{'='*60}\n")
 
     def test_duplicate_filename_handling(self):
@@ -332,15 +330,14 @@ class IntegratedRateConParserTest(TransactionTestCase):
             f"Expected PARSED but got {doc.status}. Error: {doc.error_message}",
         )
 
-        parsed = ParsedRateCon.objects.get(document=doc)
-        self.assertIsNotNone(parsed)
+        doc = RateConDocument.objects.select_related('load').get(pk=document_id)
         self.assertIsNotNone(
-            parsed.load,
-            "ParsedRateCon.load should not be null after PARSED status",
+            doc.load,
+            "RateConDocument.load should not be null after PARSED status",
         )
 
         # Print results
-        load = parsed.load
+        load = doc.load
         print(f"\n{'='*60}")
         print(f"PDF MODE LOAD DETAILS (ID: {load.pk})")
         print(f"{'='*60}")
@@ -366,8 +363,8 @@ class IntegratedRateConParserTest(TransactionTestCase):
                 if stop.driver_notes:
                     print(f"      Notes:      {stop.driver_notes}")
 
-        print(f"\n  ParsedRateCon:")
-        print(f"    Classification passed: {parsed.classification_passed}")
-        print(f"    Classification reason: {parsed.classification_reason}")
+        print(f"\n  Classification:")
+        print(f"    Classification passed: {doc.classification_passed}")
+        print(f"    Classification reason: {doc.classification_reason}")
         print(f"\n  TOTAL TIME: {processing_time:.2f}s")
         print(f"{'='*60}\n")

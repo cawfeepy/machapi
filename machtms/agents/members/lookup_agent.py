@@ -1,10 +1,12 @@
 from agno.agent import Agent
+from agno.models.openai import OpenAIChat
 from machtms.agents.toolkit.addresses import AddressToolkit
 from machtms.agents.toolkit.carriers import CarrierDriverToolkit
 from machtms.agents.toolkit.customers import CustomerToolkit
 
 lookup_agent = Agent(
     name="Lookup Agent",
+    model=OpenAIChat(id="gpt-5.4-nano"),
     role="Searches, lists, and filters addresses, customers, carriers, and drivers",
     tools=[AddressToolkit(), CustomerToolkit(), CarrierDriverToolkit()],
     instructions=[

@@ -5,7 +5,7 @@ from machtms.agents.models.ratecon_payload import ParsedRateConData
 
 rate_con_processor = Agent(
     name="Rate Con Processor",
-    model=OpenAIChat(id="gpt-5.2"),
+    model=OpenAIChat(id="gpt-5.4"),
     add_history_to_context=False,
     output_schema=ParsedRateConData,
     instructions=[

@@ -9,9 +9,15 @@ from machtms.agents.toolkit.stops import StopHistoryToolkit
 
 ratecon_load_creator = Agent(
     name="Rate Con Load Creator",
-    model=OpenAIChat(id="gpt-5.2"),
+    model=OpenAIChat(id="gpt-5.4-mini"),
     add_history_to_context=False,
-    tools=[LoadToolkit(), AddressToolkit(), CustomerToolkit(), StopHistoryToolkit(), DocumentParsingToolkit()],
+    tools=[
+        LoadToolkit(),
+        AddressToolkit(),
+        CustomerToolkit(),
+        StopHistoryToolkit(),
+        DocumentParsingToolkit()
+    ],
     instructions=[
         "You create loads from parsed rate confirmation data.",
         "You receive JSON matching the ParsedRateConData schema (from the rate_con_processor agent) and turn it into a load.",
@@ -107,7 +113,7 @@ ratecon_load_creator = Agent(
         "",
         "7. CREATE LOAD: Call create_load_from_parsed() with the assembled JSON string.",
         "",
-        "8. LINK LOAD TO DOCUMENT: After the load is created, call assign_load_to_parsed_ratecon()",
+        "8. LINK LOAD TO DOCUMENT: After the load is created, call assign_load_to_document()",
         "   with the newly created load ID. The document ID is provided automatically via",
         "   the run context — you do not need to pass it.",
         "",

@@ -8,7 +8,7 @@ from .lookup_agent import lookup_agent
 
 lead_team = Team(
     name="TMS Lead Agent",
-    model=OpenAIChat(id="gpt-5.2"),
+    model=OpenAIChat(id="gpt-5.4"),
     members=[dispatcher, planner, load_creation_team, lookup_agent],
     instructions=[
         "You are the lead coordinator for TMS operations.",

@@ -1,4 +1,5 @@
 .claude
+.serena
 __pycache__
 *.pyc
 mailmap.txt

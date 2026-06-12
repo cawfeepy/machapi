@@ -1,4 +1,4 @@
-from rest_framework import viewsets
+from rest_framework import filters, viewsets
 from machtms.core.base.mixins import TMSViewMixin
 from machtms.backend.carriers.models import Carrier, Driver
 from machtms.backend.carriers.serializers import (
@@ -16,6 +16,8 @@ class CarrierViewSet(TMSViewMixin, viewsets.ModelViewSet):
     """
     queryset = Carrier.objects.all()
     serializer_class = CarrierSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['^carrier_name']
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -30,6 +32,8 @@ class DriverViewSet(TMSViewMixin, viewsets.ModelViewSet):
     """
     queryset = Driver.objects.all()
     serializer_class = DriverSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['^first_name', '^last_name']
 
     def get_serializer_class(self):
         if self.action == 'list':

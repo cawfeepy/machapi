@@ -58,13 +58,13 @@ LOGGING = {
             "propagate": False
         },
         "machtms.core.celerycontroller": {
-            "handlers": ["console", "celery_file"],
-            "level": "DEBUG" if env.django.DEBUG else "ERROR",
+            "handlers": ["celery_file"],
+            "level": "ERROR",
             "propagate": False,
         },
         "machtms.core.celerycontroller.signals": {
-            "handlers": ["console", "celery_file"],
-            "level": "DEBUG" if env.django.DEBUG else "ERROR",
+            "handlers": ["celery_file"],
+            "level": "ERROR",
             "propagate": False,
         },
         "machtms.core.base": {

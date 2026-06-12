@@ -1,4 +1,4 @@
-from rest_framework import viewsets
+from rest_framework import filters, viewsets
 from machtms.core.base.mixins import TMSViewMixin
 from machtms.backend.customers.models import Customer, CustomerAP, CustomerRepresentative
 from machtms.backend.customers.serializers import (
@@ -16,6 +16,8 @@ class CustomerViewSet(TMSViewMixin, viewsets.ModelViewSet):
     """
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['^customer_name']
 
     def get_serializer_class(self):
         if self.action == 'list':

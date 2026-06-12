@@ -1,17 +1,26 @@
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.db.models import Exists, OuterRef, Subquery, Prefetch
+from django.db.models import Exists, OuterRef, Subquery, Prefetch, Q
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiExample,
+    OpenApiResponse,
+)
 from machtms.core.base.mixins import TMSViewMixin
 from machtms.backend.loads.models import Load
 from machtms.backend.legs.models import Leg, ShipmentAssignment
 from machtms.backend.routes.models import Stop
 from machtms.backend.loads.serializers import (
     LoadSerializer,
-    LoadDailySerializer,
+    LegScheduleQuerySerializer,
+    LegRowSerializer,
+    order_legs,
+    leg_in_windows,
+    leg_earliest_start,
 )
 from machtms.backend.loads.openapi_doc import (
     CALENDAR_DAY_EXAMPLES,
@@ -20,6 +29,174 @@ from machtms.backend.loads.openapi_doc import (
 
 # Actions that represent pickup stops
 PICKUP_ACTIONS = ['LL', 'HL', 'EMPP', 'HUBP']
+
+# ---------------------------------------------------------------------------
+# OpenAPI response schema for the leg-schedule endpoint.
+#
+# leg_schedule returns hand-built dicts (not a registered serializer), so the
+# response shape is described here as a raw OpenAPI object. Keys are declared
+# in snake_case to match the actual JSON exactly -- the camelize postprocessing
+# hook only rewrites introspected serializer fields, never raw dict values, so
+# a serializer-based schema here would mismatch the real (snake_case) payload.
+# ---------------------------------------------------------------------------
+_SIBLING_STOP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'label': {'type': 'string', 'example': 'Walmart DC - Dallas, TX'},
+        'action': {'type': 'string', 'example': 'LL'},
+        'action_display': {'type': 'string', 'example': 'LIVE LOAD'},
+        'start_range': {'type': 'string', 'format': 'date-time', 'nullable': True},
+        'end_range': {'type': 'string', 'format': 'date-time', 'nullable': True},
+    },
+}
+
+_SIBLING_LEG_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'leg_id': {'type': 'integer'},
+        'sequence_index': {'type': 'integer'},
+        'owner': {
+            'type': 'string',
+            'description': '"<carrier_name> / <driver_full_name>" or "unassigned".',
+            'example': 'Speedy Freight / John Doe',
+        },
+        'stops': {'type': 'array', 'items': _SIBLING_STOP_SCHEMA},
+    },
+}
+
+_OWN_STOP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'id': {'type': 'integer'},
+        'stop_number': {'type': 'integer'},
+        'address': {'type': 'object', 'description': 'Full AddressSerializer object.'},
+        'start_range': {'type': 'string', 'format': 'date-time', 'nullable': True},
+        'end_range': {'type': 'string', 'format': 'date-time', 'nullable': True},
+        'action': {'type': 'string'},
+        'action_display': {'type': 'string'},
+        'po_numbers': {'type': 'string'},
+    },
+}
+
+_LEG_ROW_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'leg_id': {'type': 'integer'},
+        'sequence_index': {
+            'type': 'integer',
+            'description': '0-based position of this leg within the load, ordered by earliest stop.',
+        },
+        'reference_number': {'type': 'string'},
+        'status': {'type': 'string'},
+        'bol_number': {'type': 'string'},
+        'trip_id': {'type': 'string'},
+        'customer': {
+            'type': 'object',
+            'nullable': True,
+            'properties': {
+                'id': {'type': 'integer'},
+                'customer_name': {'type': 'string'},
+            },
+        },
+        'owner': {
+            'type': 'object',
+            'nullable': True,
+            'description': 'This leg\'s carrier + driver, or null when unassigned.',
+            'properties': {
+                'carrier': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'carrier_name': {'type': 'string'},
+                    },
+                },
+                'driver': {
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'full_name': {'type': 'string'},
+                    },
+                },
+            },
+        },
+        'is_assigned': {'type': 'boolean'},
+        'stops': {'type': 'array', 'items': _OWN_STOP_SCHEMA},
+        'previous_legs': {'type': 'array', 'items': _SIBLING_LEG_SCHEMA},
+        'next_legs': {'type': 'array', 'items': _SIBLING_LEG_SCHEMA},
+    },
+}
+
+LEG_SCHEDULE_RESPONSE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'count': {'type': 'integer'},
+        'results': {'type': 'array', 'items': _LEG_ROW_SCHEMA},
+    },
+}
+
+LEG_SCHEDULE_RESPONSE_EXAMPLE = OpenApiExample(
+    'Chronological stream interleaving two loads',
+    value={
+        'count': 2,
+        'results': [
+            {
+                'leg_id': 20,
+                'sequence_index': 0,
+                'reference_number': 'REF-000456',
+                'status': 'assigned',
+                'bol_number': 'BOL-000456',
+                'trip_id': 'TRIP-77',
+                'customer': {'id': 9, 'customer_name': 'Northwind Traders'},
+                'owner': {
+                    'carrier': {'id': 30, 'carrier_name': 'Cross Country Hauling'},
+                    'driver': {'id': 60, 'full_name': 'Maria Lopez'},
+                },
+                'is_assigned': True,
+                'stops': [
+                    {
+                        'id': 200, 'stop_number': 1,
+                        'address': {'id': 14, 'place_name': 'Costco DC', 'city': 'Denver', 'state': 'CO'},
+                        'start_range': '2025-06-01T14:00:00Z', 'end_range': '2025-06-01T16:00:00Z',
+                        'action': 'LL', 'action_display': 'LIVE LOAD', 'po_numbers': 'PO-9',
+                    },
+                ],
+                'previous_legs': [],
+                'next_legs': [],
+            },
+            {
+                'leg_id': 11,
+                'sequence_index': 1,
+                'reference_number': 'REF-000123',
+                'status': 'assigned',
+                'bol_number': 'BOL-000123',
+                'trip_id': 'TRIP-99',
+                'customer': {'id': 5, 'customer_name': 'Acme Logistics'},
+                'owner': None,
+                'is_assigned': False,
+                'stops': [
+                    {
+                        'id': 101, 'stop_number': 1,
+                        'address': {'id': 8, 'place_name': 'Target DC', 'city': 'Phoenix', 'state': 'AZ'},
+                        'start_range': '2025-06-01T23:00:00Z', 'end_range': None,
+                        'action': 'LU', 'action_display': 'LIVE UNLOAD', 'po_numbers': '',
+                    },
+                ],
+                'previous_legs': [
+                    {
+                        'leg_id': 10, 'sequence_index': 0, 'owner': 'Speedy Freight / John Doe',
+                        'stops': [{
+                            'label': 'Walmart DC - Dallas, TX', 'action': 'LL',
+                            'action_display': 'LIVE LOAD',
+                            'start_range': '2025-05-31T15:00:00Z', 'end_range': '2025-05-31T17:00:00Z',
+                        }],
+                    },
+                ],
+                'next_legs': [],
+            },
+        ],
+    },
+    response_only=True,
+)
 
 class LoadViewSet(TMSViewMixin, viewsets.ModelViewSet):
     """
@@ -42,112 +219,71 @@ class LoadViewSet(TMSViewMixin, viewsets.ModelViewSet):
         #     return LoadWriteSerializer
         return LoadSerializer  # Default fallback
 
+
     @extend_schema(
-        summary="Get loads for a specific day",
+        summary="Flat per-leg schedule for a set of dates",
         description=(
-            "Returns loads that have at least one pickup stop on the specified date. "
-            "Loads are sorted with unassigned legs first, then by earliest pickup time. "
-            "Use this endpoint when the user clicks on a specific day in the calendar."
+            "Returns one row per leg whose OWN stop (pickup or delivery) starts "
+            "within any of the requested local-day windows. Results are a single "
+            "flat CHRONOLOGICAL stream ordered by each leg's earliest stop time "
+            "(earliest first), tie-broken by leg id -- rows are NOT grouped by "
+            "load, so legs from different loads may interleave. Legs whose own "
+            "stops all fall outside the windows (or that have no stops) do NOT get "
+            "their own row, but still appear inside the previous_legs / next_legs "
+            "of the legs that do, providing full-trip context. Each row carries "
+            "the load's identity, the leg's owner (carrier + driver, or null when "
+            "unassigned), the leg's stops, and condensed summaries of the "
+            "surrounding legs (previous_legs / next_legs). Note sequence_index is "
+            "the leg's position within its full trip and may be non-contiguous "
+            "across rows."
         ),
         parameters=[
             OpenApiParameter(
-                name='date',
+                name='dates',
                 type=str,
                 location=OpenApiParameter.QUERY,
-                description='The date to get loads for (YYYY-MM-DD). Defaults to today.',
-                required=False,
+                description='One or more dates (YYYY-MM-DD). May be repeated for non-consecutive days.',
+                required=True,
+                many=True,
                 examples=[
-                    OpenApiExample(
-                        'Specific date',
-                        value='2024-02-05',
-                        description='Get loads for February 5th, 2024',
-                    ),
+                    OpenApiExample('Two non-consecutive days', value=['2025-06-01', '2025-06-16']),
                 ],
             ),
+            OpenApiParameter(
+                name='timezone',
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description='IANA timezone the dates are expressed in (e.g. America/Los_Angeles).',
+                required=True,
+                examples=[OpenApiExample('Pacific', value='America/Los_Angeles')],
+            ),
         ],
-        examples=CALENDAR_DAY_EXAMPLES,
+        responses={
+            200: OpenApiResponse(
+                response=LEG_SCHEDULE_RESPONSE_SCHEMA,
+                description='Flat list of leg rows wrapped in a count/results envelope.',
+                examples=[LEG_SCHEDULE_RESPONSE_EXAMPLE],
+            ),
+        },
     )
-    @action(detail=False, methods=['get'], url_path='calendar-day')
-    def calendar_day(self, request):
-        """
-        Returns loads for a specific day.
+    @action(detail=False, methods=['get'], url_path='leg-schedule')
+    def leg_schedule(self, request):
+        """Return loads flattened to one row per leg for the requested dates."""
+        # 1. Validate query params -> UTC day windows
+        query = LegScheduleQuerySerializer(data={
+            'dates': request.query_params.getlist('dates'),
+            'timezone': request.query_params.get('timezone'),
+        })
+        query.is_valid(raise_exception=True)
+        windows = query.validated_data['windows']
 
-        Used when the frontend displays a single day's loads (e.g., user clicks Wednesday).
-        """
-        # 1. Parse date parameter
-        date_param = request.query_params.get('date')
-        day_start, day_end = self._get_day_boundaries(date_param)
+        # 2. A load matches if ANY of its stops (pickup or delivery) starts within
+        #    ANY requested window. Combine the windows with OR.
+        window_q = Q()
+        for start, end in windows:
+            window_q |= Q(legs__stops__start_range__range=(start, end))
 
-        # 2. Build annotated queryset for this day
-        base_queryset = self.get_queryset()
-        queryset = self._get_calendar_day_queryset(base_queryset, day_start, day_end)
-
-        # 3. Serialize loads
-        serializer = LoadDailySerializer(queryset, many=True)
-        loads_data = serializer.data
-
-        # 4. Calculate summary stats
-        total_loads = len(loads_data)
-        unassigned_count = sum(1 for load in loads_data if load.get('has_unassigned_leg'))
-
-        # 5. Build response
-        response_data = {
-            'date': day_start.date().isoformat(),
-            'day_name': day_start.strftime('%A').lower(),
-            'total_loads': total_loads,
-            'unassigned_count': unassigned_count,
-            'loads': loads_data,
-        }
-
-        return Response(response_data)
-
-    def _get_day_boundaries(self, date_param):
-        """Calculate day start and end boundaries."""
-        if date_param:
-            try:
-                parsed_date = datetime.fromisoformat(date_param)
-                day_start = timezone.make_aware(
-                    datetime.combine(parsed_date.date(), datetime.min.time())
-                )
-            except ValueError:
-                # Invalid date format, fall back to today
-                day_start = timezone.make_aware(
-                    datetime.combine(timezone.now().date(), datetime.min.time())
-                )
-        else:
-            day_start = timezone.make_aware(
-                datetime.combine(timezone.now().date(), datetime.min.time())
-            )
-
-        day_end = day_start + timedelta(days=1)
-        return day_start, day_end
-
-    def _get_calendar_day_queryset(self, base_queryset, day_start, day_end):
-        """Build the annotated and prefetched queryset for a single day."""
-
-        # Subquery: Does this load have at least one leg without a shipment assignment?
-        unassigned_leg_subquery = Leg.objects.filter(
-            load=OuterRef('pk')
-        ).exclude(
-            shipment_assignment__isnull=False
-        )
-
-        # Subquery: First pickup time for this load on this day
-        first_pickup_on_day = Stop.objects.filter(
-            leg__load=OuterRef('pk'),
-            action__in=PICKUP_ACTIONS,
-            start_range__gte=day_start,
-            start_range__lt=day_end,
-        ).order_by('start_range').values('start_range')[:1]
-
-        return base_queryset.filter(
-            legs__stops__action__in=PICKUP_ACTIONS,
-            legs__stops__start_range__gte=day_start,
-            legs__stops__start_range__lt=day_end,
-        ).annotate(
-            has_unassigned_leg=Exists(unassigned_leg_subquery),
-            first_pickup_time=Subquery(first_pickup_on_day),
-        ).distinct().select_related(
+        queryset = self.get_queryset().filter(window_q).distinct().select_related(
             'customer',
         ).prefetch_related(
             Prefetch(
@@ -163,175 +299,31 @@ class LoadViewSet(TMSViewMixin, viewsets.ModelViewSet):
                     ),
                 ).order_by('pk')
             ),
-        ).order_by(
-            '-has_unassigned_leg',
-            'first_pickup_time',
         )
 
-    @extend_schema(
-        summary="Get loads for calendar week view",
-        description=(
-            "Returns loads grouped by day for a Sunday-Saturday week. "
-            "Filters loads that have at least one pickup stop within the week. "
-            "Within each day, loads are sorted with unassigned legs first, "
-            "then by earliest pickup time. Loads with pickups on multiple days "
-            "will appear in each relevant day's array."
-        ),
-        parameters=[
-            OpenApiParameter(
-                name='week_start',
-                type=str,
-                location=OpenApiParameter.QUERY,
-                description='Sunday of the desired week (YYYY-MM-DD). Defaults to current week.',
-                required=False,
-                examples=[
-                    OpenApiExample(
-                        'Specific week',
-                        value='2024-02-04',
-                        description='Get loads for the week of February 4th, 2024 (Sunday)',
-                    ),
-                ],
-            ),
-        ],
-        examples=CALENDAR_WEEK_EXAMPLES,
-    )
-    @action(detail=False, methods=['get'], url_path='calendar-week')
-    def calendar_week(self, request):
-        """
-        Returns loads organized by day for the specified week.
-        """
-        # 1. Parse week_start parameter
-        week_start_param = request.query_params.get('week_start')
-        week_start, week_end = self._get_week_boundaries(week_start_param)
+        # 3. Flatten loads -> legs. Per load we order ALL its legs into trip
+        #    sequence and stash that full ordered list (+ each leg's position) on
+        #    every leg, so previous_legs/next_legs always have full-trip context
+        #    -- even for siblings that fall outside the window and never become a
+        #    row. Only legs with a stop inside a requested window are emitted as
+        #    rows. Precomputing here keeps the serializer O(1) and query-free.
+        rows = []
+        for load in queryset:
+            ordered = order_legs(load)
+            for index, leg in enumerate(ordered):
+                leg._ordered_siblings = ordered
+                leg._seq_index = index
+                if leg_in_windows(leg, windows):
+                    # An in-window leg always has a stop with a real start_range,
+                    # so this key is never None (no datetime-vs-None comparison).
+                    leg._row_sort_key = leg_earliest_start(leg)
+                    rows.append(leg)
 
-        # 2. Build annotated queryset
-        base_queryset = self.get_queryset()
-        queryset = self._get_calendar_week_queryset(base_queryset, week_start, week_end)
+        # One flat chronological stream: every emitted leg ordered by its own
+        # earliest stop, tie-broken by pk. Rows are NOT grouped by load -- a
+        # multi-leg load's rows may be split apart by other loads' legs whose
+        # pickups fall between them.
+        rows.sort(key=lambda leg: (leg._row_sort_key, leg.pk))
 
-        # 3. Serialize all loads
-        serializer = LoadDailySerializer(queryset, many=True)
-        loads_data = serializer.data
-
-        # 4. Group by day
-        days = self._group_loads_by_day(loads_data, week_start)
-
-        # 5. Calculate summary stats
-        total_loads = len(loads_data)
-        unassigned_count = sum(1 for load in loads_data if load.get('has_unassigned_leg'))
-
-        # 6. Build response
-        response_data = {
-            'week_start': week_start.date().isoformat(),
-            'week_end': (week_end - timedelta(days=1)).date().isoformat(),
-            'days': days,
-            'total_loads': total_loads,
-            'unassigned_count': unassigned_count,
-        }
-
-        return Response(response_data)
-
-    def _get_week_boundaries(self, week_start_param):
-        """Calculate Sunday-Saturday week boundaries."""
-        if week_start_param:
-            try:
-                parsed_date = datetime.fromisoformat(week_start_param)
-                week_start = timezone.make_aware(
-                    datetime.combine(parsed_date.date(), datetime.min.time())
-                )
-            except ValueError:
-                # Invalid date format, fall back to current week
-                week_start = self._get_current_week_sunday()
-        else:
-            week_start = self._get_current_week_sunday()
-
-        week_end = week_start + timedelta(days=7)
-        return week_start, week_end
-
-    def _get_current_week_sunday(self):
-        """Get the Sunday of the current week."""
-        today = timezone.now().date()
-        days_since_sunday = (today.weekday() + 1) % 7
-        sunday = today - timedelta(days=days_since_sunday)
-        return timezone.make_aware(datetime.combine(sunday, datetime.min.time()))
-
-    def _get_calendar_week_queryset(self, base_queryset, week_start, week_end):
-        """Build the annotated and prefetched queryset for calendar view."""
-
-        # Subquery: Does this load have at least one leg without a shipment assignment?
-        unassigned_leg_subquery = Leg.objects.filter(
-            load=OuterRef('pk')
-        ).exclude(
-            shipment_assignment__isnull=False
-        )
-
-        # Subquery: First pickup time for this load within the week
-        first_pickup_in_week = Stop.objects.filter(
-            leg__load=OuterRef('pk'),
-            action__in=PICKUP_ACTIONS,
-            start_range__gte=week_start,
-            start_range__lt=week_end,
-        ).order_by('start_range').values('start_range')[:1]
-
-        return base_queryset.filter(
-            legs__stops__action__in=PICKUP_ACTIONS,
-            legs__stops__start_range__gte=week_start,
-            legs__stops__start_range__lt=week_end,
-        ).annotate(
-            has_unassigned_leg=Exists(unassigned_leg_subquery),
-            first_pickup_time=Subquery(first_pickup_in_week),
-        ).distinct().select_related(
-            'customer',
-        ).prefetch_related(
-            Prefetch(
-                'legs',
-                queryset=Leg.objects.prefetch_related(
-                    Prefetch(
-                        'stops',
-                        queryset=Stop.objects.select_related('address').order_by('stop_number')
-                    ),
-                    Prefetch(
-                        'shipment_assignment',
-                        queryset=ShipmentAssignment.objects.select_related('carrier', 'driver')
-                    ),
-                ).order_by('pk')
-            ),
-        ).order_by(
-            '-has_unassigned_leg',
-            'first_pickup_time',
-        )
-
-    def _group_loads_by_day(self, loads_data, week_start):
-        """Group serialized loads by day of the week."""
-        # Initialize days structure (Sunday = 0, Saturday = 6)
-        day_names = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-        days = {name: [] for name in day_names}
-
-        for load in loads_data:
-            # Find which days this load has pickup stops
-            pickup_days = set()
-            for leg in load.get('legs', []):
-                for stop in leg.get('stops', []):
-                    if stop.get('action') in PICKUP_ACTIONS:
-                        start_range = stop.get('start_range')
-                        if start_range:
-                            # Handle ISO format string
-                            if isinstance(start_range, str):
-                                stop_time = datetime.fromisoformat(start_range.replace('Z', '+00:00'))
-                            else:
-                                stop_time = start_range
-                            # Calculate day index (0 = Sunday)
-                            day_offset = (stop_time.date() - week_start.date()).days
-                            if 0 <= day_offset < 7:
-                                pickup_days.add(day_offset)
-
-            # Add load to each day it has a pickup
-            for day_index in pickup_days:
-                days[day_names[day_index]].append(load)
-
-        # Sort each day's loads (unassigned first, then by first_pickup_time)
-        for day_name in day_names:
-            days[day_name].sort(
-                key=lambda x: (not x.get('has_unassigned_leg', False), x.get('first_pickup_time') or '')
-            )
-
-        return days
+        data = LegRowSerializer(rows, many=True, context={'request': request}).data
+        return Response({'count': len(data), 'results': data})
